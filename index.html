@@ -1,6 +1,50 @@
 <!doctype html>
 <html lang="bn">
 <head>
+ 
+<meta name="biki-site-version" content="v2-2026-11-13">
+<meta http-equiv="Cache-Control" content="no-cache">
+
+<script>
+(function () {
+  const version = document.querySelector(
+    'meta[name="biki-site-version"]'
+  ).content;
+
+  async function checkUpdate() {
+    if (document.hidden) return;
+
+    try {
+      const url = new URL("index.html", location.href);
+      url.searchParams.set("_check", Date.now());
+
+      const response = await fetch(url, {cache: "no-store"});
+      if (!response.ok) return;
+
+      const html = await response.text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const latest = doc.querySelector(
+        'meta[name="biki-site-version"]'
+      )?.content;
+
+      if (latest && latest !== version) {
+        if (confirm("New website update available. Save your work and refresh?")) {
+          location.reload();
+        }
+      }
+    } catch (error) {
+      console.log("Update check unavailable");
+    }
+  }
+
+  window.addEventListener("load", checkUpdate);
+  setInterval(checkUpdate, 90000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) checkUpdate();
+  });
+})();
+</script>
+  
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BIKI ONLINE SERVICE CENTER</title>
 <style>
