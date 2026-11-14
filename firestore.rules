@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Replace IN19xYH45xaWncrNswTbU8IrXPj1 with the UID of your OWNER user from Firebase Authentication.
+    // Never allow all users or anonymous users to read business records.
+    match /owners/{ownerUid}/settings/{key} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == ownerUid
+        && request.auth.uid == 'IN19xYH45xaWncrNswTbU8IrXPj1'
+        && key in ['biki_accounting_v1','biki_business_name','biki_business_address',
+                   'biki_business_mobile','biki_business_mobile2','biki_business_logo',
+                   'biki_upi_qr_image','biki_bg_mode','biki_bg_overlay','biki_bg_image',
+                   'biki_invoice_design_v2','biki_theme_v2']
+        && (request.method == 'get' || request.method == 'list' || request.method == 'delete'
+            || (request.resource.data.keys().hasOnly(['value','updatedAt','deviceId'])
+                && request.resource.data.value is string
+                && request.resource.data.value.size() < 900000));
+    }
+  }
+}
