@@ -10,7 +10,18 @@ function pathFor(id){return 'owner/'+encodeURIComponent(String(id))+'.pdf'}
 async function upload(id,file){await auth();const path=pathFor(id);const {error}=await sb().storage.from(BUCKET).upload(path,file,{upsert:true,contentType:'application/pdf'});if(error)throw error;return path}
 async function download(path){await auth();const {data,error}=await sb().storage.from(BUCKET).download(path);if(error)throw error;return data}
 async function remove(path){await auth();const {error}=await sb().storage.from(BUCKET).remove([path]);if(error)throw error}
-window.bikiPdfCloud={upload,download,remove};
+
+window.bikiPdfCloud = {
+  upload,
+  download,
+  remove,
+  getSession: async () => {
+    const { data, error } = await sb().auth.getSession();
+    if (error) throw error;
+    return data.session;
+  }
+};
+
 function init(){const $=id=>document.getElementById(id);if(!$('pdfCloudLogin'))return;
 const status=async()=>{try{const {data}=await sb().auth.getUser();$('pdfCloudStatus').textContent=data.user?'Connected: '+data.user.email:'Not connected — PDF upload requires Supabase login'}catch(e){$('pdfCloudStatus').textContent=e.message}};
 $('pdfCloudLogin').onclick=async()=>{try{const {error}=await sb().auth.signInWithPassword({email:$('pdfCloudEmail').value.trim(),password:$('pdfCloudPassword').value});if(error)throw error;await status()}catch(e){alert('Cloud login: '+e.message)}};
