@@ -390,7 +390,22 @@ function deleteSale(sid){if(bikiIsStaff()){alert("Only Admin can delete sales.")
  for(const i of saleItems(s)){if(i.type==='service')continue;let p=data.products.find(x=>x.id===i.productId);if(p)p.qty+=Number(i.qty)||0}
  if(s.transactionId)data.transactions=data.transactions.filter(x=>x.id!==s.transactionId);
  if(s.dueId)data.dues=data.dues.filter(x=>x.id!==s.dueId);
- data.sales=data.sales.filter(x=>x.id!==sid);if(editingSaleId===sid)resetBill();save();renderBill();
+ data.sales=data.sales.filter(x=>x.id!==sid);
+ if(editingSaleId===sid)resetBill();
+ save();
+ renderBill();
+ // Notify Telegram only after the sale has been deleted and saved.
+ try {
+   window.bikiTelegramAlert?.enqueue({
+     type:'sale_deleted',
+     customer:s.customer||'Walk-in Customer',
+     amount:s.total??s.amount??0,
+     payment_mode:s.mode||'',
+     reference:s.receiptNo||s.id
+   },'sale_deleted:'+s.id);
+ } catch(err) {
+   console.warn('Sale deleted, but Telegram alert could not be queued:',err);
+ }
 }
 function editSale(sid){if(bikiIsStaff()){alert("Only Admin can modify completed invoices.");return;}
  let s=data.sales.find(x=>x.id===sid);if(!s)return;
