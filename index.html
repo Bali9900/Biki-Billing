@@ -698,6 +698,83 @@ function editSale(sid){if(bikiIsStaff()){alert("Only Admin can modify completed 
  editingSaleId=sid;billItems=saleItems(s).map(i=>({...i}));$('saleCustomer').value=s.customer||'';$('salePhone').value=s.phone||'';$('saleMode').value=s.mode||'Cash';$('saleDiscount').value=s.discount||0;
  $('saleFormTitle').textContent='Modify Invoice '+s.receiptNo;$('saveBillBtn').textContent='✓ Update Complete Bill';$('billStatus').textContent='Modify করে Update Bill চাপুন; Auto Print হবে না।';show('sales');renderBill();window.scrollTo({top:0,behavior:'smooth'});
 }
+// BIKI Sale Voice Announcement — runs locally in the browser, no customer details spoken.
+function bikiSaleVoiceEnabled(){return localStorage.getItem('biki_sale_voice_enabled')!=='off'}
+let bikiVoiceUtterance=null;
+function bikiSaleVoiceStatus(message){
+ const el=document.getElementById('bikiSaleVoiceStatus');
+ if(el)el.textContent=message;
+}
+function bikiSaleVoiceChime(){
+ try{
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC)return;
+  const ctx=window.bikiSaleAudioCtx||(window.bikiSaleAudioCtx=new AC());
+  if(ctx.state==='suspended')ctx.resume();
+  [0,0.16].forEach((delay,i)=>{
+   const osc=ctx.createOscillator(),gain=ctx.createGain();
+   osc.type='sine';osc.frequency.value=i?880:660;
+   gain.gain.setValueAtTime(0.0001,ctx.currentTime+delay);
+   gain.gain.exponentialRampToValueAtTime(0.12,ctx.currentTime+delay+0.015);
+   gain.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+delay+0.14);
+   osc.connect(gain);gain.connect(ctx.destination);
+   osc.start(ctx.currentTime+delay);osc.stop(ctx.currentTime+delay+0.15);
+  });
+ }catch(e){console.warn('Sale chime unavailable',e)}
+}
+function bikiSaleVoiceSpeak(amount,updated,force=false){
+ if(!force&&!bikiSaleVoiceEnabled())return;
+ bikiSaleVoiceChime();
+ if(!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){
+  bikiSaleVoiceStatus('⚠ এই Browser-এ Voice Support নেই। Chrome বা Edge ব্যবহার করুন।');return;
+ }
+ const rupees=Number(amount);
+ if(!Number.isFinite(rupees))return;
+ try{
+  const voices=window.speechSynthesis.getVoices();
+  const bn=voices.find(v=>/^bn([-_]|$)/i.test(v.lang));
+  const en=voices.find(v=>/^en[-_]IN$/i.test(v.lang))||voices.find(v=>/^en/i.test(v.lang));
+  const bangla=!!bn;
+  const amountText=bangla?new Intl.NumberFormat('bn-IN',{maximumFractionDigits:2}).format(rupees):new Intl.NumberFormat('en-IN',{maximumFractionDigits:2}).format(rupees);
+  const message=bangla?(updated?'বিল আপডেট হয়েছে। ':'নতুন সেল হয়েছে। ')+amountText+' টাকার '+(updated?'বিল আপডেট হয়েছে।':'সেল হয়েছে।'):(updated?'Bill updated. ':'New sale completed. ')+amountText+' rupees.';
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(message);
+  bikiVoiceUtterance=u;
+  u.lang=bangla?'bn-IN':(en?.lang||'en-IN');
+  if(bangla)u.voice=bn;else if(en)u.voice=en;
+  u.rate=0.9;u.pitch=1;u.volume=1;
+  u.onstart=()=>bikiSaleVoiceStatus('🔊 Voice চলছে ('+(bangla?'বাংলা':'English fallback')+')');
+  u.onend=()=>bikiSaleVoiceStatus('✓ Voice Test/Announcement সম্পন্ন');
+  u.onerror=e=>bikiSaleVoiceStatus('⚠ Voice চালানো যায়নি: '+(e.error||'Browser audio blocked'));
+  bikiSaleVoiceStatus('🔊 Voice শুরু হচ্ছে...');
+  window.speechSynthesis.speak(u);
+  // Chrome occasionally pauses speech after backgrounding the tab.
+  if(window.speechSynthesis.paused)window.speechSynthesis.resume();
+ }catch(e){bikiSaleVoiceStatus('⚠ Voice Error: '+e.message)}
+}
+function bikiSaleVoiceToggle(){
+ const next=!bikiSaleVoiceEnabled();
+ localStorage.setItem('biki_sale_voice_enabled',next?'on':'off');
+ bikiSaleVoiceRefresh();
+ if(next)bikiSaleVoiceSpeak(100,false,true);
+ else{window.speechSynthesis?.cancel();bikiSaleVoiceStatus('🔇 Voice বন্ধ আছে');}
+}
+function bikiSaleVoiceRefresh(){
+ const b=document.getElementById('bikiSaleVoiceToggle');
+ if(b){b.textContent=bikiSaleVoiceEnabled()?'🔊 Sale Voice: ON':'🔇 Sale Voice: OFF';b.setAttribute('aria-pressed',String(bikiSaleVoiceEnabled()));}
+}
+function bikiSaleVoiceInit(){
+ const btn=document.getElementById('saveBillBtn');
+ if(!btn||document.getElementById('bikiSaleVoiceToggle'))return;
+ const wrap=document.createElement('span');wrap.style.cssText='display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 8px 8px 0';
+ const toggle=document.createElement('button');toggle.type='button';toggle.id='bikiSaleVoiceToggle';toggle.className='outline';
+ toggle.textContent='🔊 Sale Voice';toggle.onclick=bikiSaleVoiceToggle;
+ const test=document.createElement('button');test.type='button';test.className='outline';test.textContent='▶ Test Sound';test.onclick=()=>bikiSaleVoiceSpeak(100,false,true);
+ const status=document.createElement('small');status.id='bikiSaleVoiceStatus';status.style.cssText='font-size:11px;color:#315f84';status.textContent='Test Sound চাপুন';
+ wrap.append(toggle,test,status);btn.parentNode.insertBefore(wrap,btn);
+ bikiSaleVoiceRefresh();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bikiSaleVoiceInit);else bikiSaleVoiceInit();
 $('saveBillBtn').onclick=()=>{
  if(!billItems.length){alert('প্রথমে Product বা Service যোগ করুন');return}
  const customerPhone=$('salePhone').value.trim();
@@ -721,7 +798,8 @@ $('saveBillBtn').onclick=()=>{
  if(mode==='Due'&&total>0){if(!d){d={id:id()};data.dues.push(d)}Object.assign(d,{name:customer,phone:s.phone||'',date:d.date||s.date||bikiLocalToday(),amount:total,note:'Receipt '+s.receiptNo});s.dueId=d.id}
  else{if(s.dueId)data.dues=data.dues.filter(x=>x.id!==s.dueId);s.dueId=null}
  save();window.bikiTelegramAlert?.enqueue({type:s.items?.every(i=>i.type==='service')?'service':'sale',customer:s.customer,service:s.productName,amount:s.total,payment_mode:s.mode,reference:s.receiptNo},'invoice:'+s.id);resetBill();$('billStatus').textContent='Bill '+s.receiptNo+' Saved! Sales History থেকে Print করুন।';
- alert('Bill Saved: '+s.receiptNo+'\nএকটি Invoice-এ '+s.items.length+'টি Item। Print করতে Sales History-এর Print চাপুন।');
+ /* Non-blocking confirmation: browser alert used to interrupt speech. */
+ $('billStatus').textContent='✓ Bill '+s.receiptNo+' Saved! '+money(total)+' — Sales History থেকে Print করুন।';
 };
 // Download an actual PDF file directly, without opening the browser print dialog.
 async function downloadReceiptPDF(sid){
@@ -823,6 +901,21 @@ $('dueDate').value=bikiLocalToday();
 $('dueForm').onsubmit=e=>{e.preventDefault();data.dues.push({id:id(),name:$('dueName').value.trim(),phone:$('duePhone').value.trim(),date:$('dueDate').value,amount:+$('dueAmount').value,note:$('dueNote').value});e.target.reset();$('dueDate').value=bikiLocalToday();save()};
 $('serviceForm').onsubmit=e=>{e.preventDefault();if(!data.services.includes($('serviceName').value))data.services.push($('serviceName').value);e.target.reset();save();$('billServiceOptions').innerHTML=data.services.map(x=>`<option value="${esc(x)}"></option>`).join('')};
 function download(name,content,type){let a=document.createElement('a'),u=URL.createObjectURL(new Blob([content],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+// Normalize 12-hour (AM/PM) and 24-hour sale times before chronological sorting.
+function saleHistoryTimestamp(s){
+ const date=String(s.date||'').trim();
+ const raw=String(s.time||'').trim().replace(/\./g,'').replace(/\s+/g,' ').toUpperCase();
+ const m=raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/);
+ let seconds=0;
+ if(m){
+  let h=Number(m[1]),min=Number(m[2]),sec=Number(m[3]||0);
+  if(m[4])h=(h%12)+(m[4]==='PM'?12:0);
+  if(h<24&&min<60&&sec<60)seconds=h*3600+min*60+sec;
+ }
+ const dm=date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+ if(!dm)return seconds*1000;
+ return Date.UTC(Number(dm[1]),Number(dm[2])-1,Number(dm[3]))+seconds*1000;
+}
 function historySales(){
  const type=$('historyFilterType').value,day=$('historyDay').value,month=$('historyMonth').value,year=$('historyYear').value,from=$('historyFrom').value,to=$('historyTo').value,q=$('historySearch').value.trim().toLowerCase();
  const invalid=type==='range'&&(!from||!to||from>to);
@@ -830,7 +923,7 @@ function historySales(){
   const d=reportDate(s.date);
   const matches=type==='all'||(d&&(type==='daily'?d===day:type==='monthly'?d.slice(0,7)===month:type==='yearly'?d.slice(0,4)===year:d>=from&&d<=to));
   return matches&&(!q||[s.customer,s.phone,s.receiptNo,...saleItems(s).map(i=>i.name)].some(v=>String(v||'').toLowerCase().includes(q)));
- }).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.time||'').localeCompare(String(a.time||'')));
+ }).slice().sort((a,b)=>saleHistoryTimestamp(b)-saleHistoryTimestamp(a)||String(b.receiptNo||'').localeCompare(String(a.receiptNo||''),undefined,{numeric:true}));
  return {sales,invalid};
 }
 function renderSalesHistory(){
