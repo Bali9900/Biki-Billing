@@ -698,6 +698,44 @@ function editSale(sid){if(bikiIsStaff()){alert("Only Admin can modify completed 
  editingSaleId=sid;billItems=saleItems(s).map(i=>({...i}));$('saleCustomer').value=s.customer||'';$('salePhone').value=s.phone||'';$('saleMode').value=s.mode||'Cash';$('saleDiscount').value=s.discount||0;
  $('saleFormTitle').textContent='Modify Invoice '+s.receiptNo;$('saveBillBtn').textContent='✓ Update Complete Bill';$('billStatus').textContent='Modify করে Update Bill চাপুন; Auto Print হবে না।';show('sales');renderBill();window.scrollTo({top:0,behavior:'smooth'});
 }
+// BIKI Sale Voice Announcement — runs locally in the browser, no customer details spoken.
+function bikiSaleVoiceEnabled(){return localStorage.getItem('biki_sale_voice_enabled')!=='off'}
+function bikiSaleVoiceSpeak(amount,updated){
+ if(!bikiSaleVoiceEnabled()||!('speechSynthesis' in window))return;
+ const rupees=Number(amount);
+ if(!Number.isFinite(rupees))return;
+ const spokenAmount=new Intl.NumberFormat('bn-IN',{maximumFractionDigits:2}).format(rupees);
+ const message=(updated?'বিল আপডেট হয়েছে। ':'নতুন সেল হয়েছে। ')+spokenAmount+' টাকার '+(updated?'বিল আপডেট হয়েছে।':'সেল হয়েছে।');
+ try{
+  window.speechSynthesis.cancel();
+  const utterance=new SpeechSynthesisUtterance(message);
+  utterance.lang='bn-IN';utterance.rate=0.88;utterance.pitch=1;utterance.volume=1;
+  const voices=window.speechSynthesis.getVoices();
+  const bangla=voices.find(v=>/^bn[-_]/i.test(v.lang));
+  if(bangla)utterance.voice=bangla;
+  window.speechSynthesis.speak(utterance);
+ }catch(e){console.warn('Sale voice announcement unavailable',e)}
+}
+function bikiSaleVoiceToggle(){
+ const next=!bikiSaleVoiceEnabled();
+ localStorage.setItem('biki_sale_voice_enabled',next?'on':'off');
+ bikiSaleVoiceRefresh();
+ if(next)bikiSaleVoiceSpeak(100,false);
+}
+function bikiSaleVoiceRefresh(){
+ const b=document.getElementById('bikiSaleVoiceToggle');
+ if(b){b.textContent=bikiSaleVoiceEnabled()?'🔊 Sale Voice: ON':'🔇 Sale Voice: OFF';b.setAttribute('aria-pressed',String(bikiSaleVoiceEnabled()));}
+}
+function bikiSaleVoiceInit(){
+ const btn=document.getElementById('saveBillBtn');
+ if(!btn||document.getElementById('bikiSaleVoiceToggle'))return;
+ const toggle=document.createElement('button');toggle.type='button';toggle.id='bikiSaleVoiceToggle';toggle.className='outline';
+ toggle.style.cssText='margin:8px 8px 8px 0;padding:10px 14px;border-radius:10px;cursor:pointer';
+ toggle.onclick=bikiSaleVoiceToggle;
+ btn.parentNode.insertBefore(toggle,btn);
+ bikiSaleVoiceRefresh();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bikiSaleVoiceInit);else bikiSaleVoiceInit();
 $('saveBillBtn').onclick=()=>{
  if(!billItems.length){alert('প্রথমে Product বা Service যোগ করুন');return}
  const customerPhone=$('salePhone').value.trim();
@@ -720,7 +758,7 @@ $('saveBillBtn').onclick=()=>{
  let d=s.dueId?data.dues.find(x=>x.id===s.dueId):null;
  if(mode==='Due'&&total>0){if(!d){d={id:id()};data.dues.push(d)}Object.assign(d,{name:customer,phone:s.phone||'',date:d.date||s.date||bikiLocalToday(),amount:total,note:'Receipt '+s.receiptNo});s.dueId=d.id}
  else{if(s.dueId)data.dues=data.dues.filter(x=>x.id!==s.dueId);s.dueId=null}
- save();window.bikiTelegramAlert?.enqueue({type:s.items?.every(i=>i.type==='service')?'service':'sale',customer:s.customer,service:s.productName,amount:s.total,payment_mode:s.mode,reference:s.receiptNo},'invoice:'+s.id);resetBill();$('billStatus').textContent='Bill '+s.receiptNo+' Saved! Sales History থেকে Print করুন।';
+ save();bikiSaleVoiceSpeak(total,!!old);window.bikiTelegramAlert?.enqueue({type:s.items?.every(i=>i.type==='service')?'service':'sale',customer:s.customer,service:s.productName,amount:s.total,payment_mode:s.mode,reference:s.receiptNo},'invoice:'+s.id);resetBill();$('billStatus').textContent='Bill '+s.receiptNo+' Saved! Sales History থেকে Print করুন।';
  alert('Bill Saved: '+s.receiptNo+'\nএকটি Invoice-এ '+s.items.length+'টি Item। Print করতে Sales History-এর Print চাপুন।');
 };
 // Download an actual PDF file directly, without opening the browser print dialog.
