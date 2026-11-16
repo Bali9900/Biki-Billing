@@ -769,9 +769,8 @@ function bikiSaleVoiceInit(){
  const wrap=document.createElement('span');wrap.style.cssText='display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 8px 8px 0';
  const toggle=document.createElement('button');toggle.type='button';toggle.id='bikiSaleVoiceToggle';toggle.className='outline';
  toggle.textContent='🔊 Sale Voice';toggle.onclick=bikiSaleVoiceToggle;
- const test=document.createElement('button');test.type='button';test.className='outline';test.textContent='▶ Test Sound';test.onclick=()=>bikiSaleVoiceSpeak(100,false,true);
- const status=document.createElement('small');status.id='bikiSaleVoiceStatus';status.style.cssText='font-size:11px;color:#315f84';status.textContent='Test Sound চাপুন';
- wrap.append(toggle,test,status);btn.parentNode.insertBefore(wrap,btn);
+ const status=document.createElement('small');status.id='bikiSaleVoiceStatus';status.style.cssText='font-size:11px;color:#315f84';status.textContent='';
+ wrap.append(toggle,status);btn.insertAdjacentElement('afterend',wrap);
  bikiSaleVoiceRefresh();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bikiSaleVoiceInit);else bikiSaleVoiceInit();
