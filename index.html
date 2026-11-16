@@ -797,7 +797,7 @@ $('saveBillBtn').onclick=()=>{
  let d=s.dueId?data.dues.find(x=>x.id===s.dueId):null;
  if(mode==='Due'&&total>0){if(!d){d={id:id()};data.dues.push(d)}Object.assign(d,{name:customer,phone:s.phone||'',date:d.date||s.date||bikiLocalToday(),amount:total,note:'Receipt '+s.receiptNo});s.dueId=d.id}
  else{if(s.dueId)data.dues=data.dues.filter(x=>x.id!==s.dueId);s.dueId=null}
- save();window.bikiTelegramAlert?.enqueue({type:s.items?.every(i=>i.type==='service')?'service':'sale',customer:s.customer,service:s.productName,amount:s.total,payment_mode:s.mode,reference:s.receiptNo},'invoice:'+s.id);resetBill();$('billStatus').textContent='Bill '+s.receiptNo+' Saved! Sales History থেকে Print করুন।';
+ save();bikiSaleVoiceSpeak(total,!!old);window.bikiTelegramAlert?.enqueue({type:s.items?.every(i=>i.type==='service')?'service':'sale',customer:s.customer,service:s.productName,amount:s.total,payment_mode:s.mode,reference:s.receiptNo},'invoice:'+s.id);resetBill();$('billStatus').textContent='Bill '+s.receiptNo+' Saved! Sales History থেকে Print করুন।';
  /* Non-blocking confirmation: browser alert used to interrupt speech. */
  $('billStatus').textContent='✓ Bill '+s.receiptNo+' Saved! '+money(total)+' — Sales History থেকে Print করুন।';
 };
