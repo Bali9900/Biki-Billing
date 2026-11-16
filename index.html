@@ -823,6 +823,21 @@ $('dueDate').value=bikiLocalToday();
 $('dueForm').onsubmit=e=>{e.preventDefault();data.dues.push({id:id(),name:$('dueName').value.trim(),phone:$('duePhone').value.trim(),date:$('dueDate').value,amount:+$('dueAmount').value,note:$('dueNote').value});e.target.reset();$('dueDate').value=bikiLocalToday();save()};
 $('serviceForm').onsubmit=e=>{e.preventDefault();if(!data.services.includes($('serviceName').value))data.services.push($('serviceName').value);e.target.reset();save();$('billServiceOptions').innerHTML=data.services.map(x=>`<option value="${esc(x)}"></option>`).join('')};
 function download(name,content,type){let a=document.createElement('a'),u=URL.createObjectURL(new Blob([content],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+// Normalize 12-hour (AM/PM) and 24-hour sale times before chronological sorting.
+function saleHistoryTimestamp(s){
+ const date=String(s.date||'').trim();
+ const raw=String(s.time||'').trim().replace(/\./g,'').replace(/\s+/g,' ').toUpperCase();
+ const m=raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/);
+ let seconds=0;
+ if(m){
+  let h=Number(m[1]),min=Number(m[2]),sec=Number(m[3]||0);
+  if(m[4])h=(h%12)+(m[4]==='PM'?12:0);
+  if(h<24&&min<60&&sec<60)seconds=h*3600+min*60+sec;
+ }
+ const dm=date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+ if(!dm)return seconds*1000;
+ return Date.UTC(Number(dm[1]),Number(dm[2])-1,Number(dm[3]))+seconds*1000;
+}
 function historySales(){
  const type=$('historyFilterType').value,day=$('historyDay').value,month=$('historyMonth').value,year=$('historyYear').value,from=$('historyFrom').value,to=$('historyTo').value,q=$('historySearch').value.trim().toLowerCase();
  const invalid=type==='range'&&(!from||!to||from>to);
@@ -830,7 +845,7 @@ function historySales(){
   const d=reportDate(s.date);
   const matches=type==='all'||(d&&(type==='daily'?d===day:type==='monthly'?d.slice(0,7)===month:type==='yearly'?d.slice(0,4)===year:d>=from&&d<=to));
   return matches&&(!q||[s.customer,s.phone,s.receiptNo,...saleItems(s).map(i=>i.name)].some(v=>String(v||'').toLowerCase().includes(q)));
- }).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.time||'').localeCompare(String(a.time||'')));
+ }).slice().sort((a,b)=>saleHistoryTimestamp(b)-saleHistoryTimestamp(a)||String(b.receiptNo||'').localeCompare(String(a.receiptNo||''),undefined,{numeric:true}));
  return {sales,invalid};
 }
 function renderSalesHistory(){
