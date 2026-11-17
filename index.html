@@ -420,7 +420,7 @@ function bikiFilterPublicServices(){
 <nav class="nav">
 <button class="active" data-page="dashboard">▦　Dashboard</button><button data-page="sales">🛒　Sales / বিক্রি</button><button data-page="transactions">◉　Income & Expense</button><button data-page="products">▣　Products</button><button data-page="customers">♙　Customers</button><button data-page="dues">৳　Due Management</button><button data-page="services">▤　Services</button><button data-page="reports">▥　Reports</button><button data-page="settings">⚙　Settings</button>
 </nav><div class="bottom">Secure Workspace<br>© 2026 BIKI ONLINE SERVICE CENTER</div></aside>
-<main><header class="top"><div class="top-business-brand"><div class="logo" id="dashboardLogo">B</div><div><b id="topBusinessName">BIKI ONLINE SERVICE CENTER</b><div><small id="topBusinessContact">Galimpur Bazar · Chanchal · Malda</small></div></div></div><div class="actions"><div id="bikiLiveClock" class="biki-live-clock" role="timer" aria-label="Live date and time"><span id="bikiClockDate">Loading date...</span><strong id="bikiClockTime">--:--:--</strong></div></div><div style="display:none"><b id="topTitle">Dashboard</b></div><div class="actions"><div class="biki-language-control"><label for="bikiLanguageSelect" class="biki-lang-label">🌐 Language</label><select id="bikiLanguageSelect" aria-label="Website language"><option value="en">English</option><option value="bn">বাংলা</option><option value="hi">हिन्दी</option></select></div><div class="avatar">AD</div><button class="logout-btn" type="button" onclick="bikiManualLock()" title="Lock with PIN (Ctrl+L where browser permits, or Alt+L)">🔒 Lock</button><button class="logout-btn" onclick="logout()">Logout</button></div></header><div class="content">
+<main><header class="top"><div class="top-business-brand"><div class="logo" id="dashboardLogo">B</div><div><b id="topBusinessName">BIKI ONLINE SERVICE CENTER</b><div><small id="topBusinessContact">Galimpur Bazar · Chanchal · Malda</small></div></div></div><div class="actions"><div id="bikiLiveClock" class="biki-live-clock" role="timer" aria-label="Live date and time"><span id="bikiClockDate">Loading date...</span><strong id="bikiClockTime">--:--:--</strong></div></div><div style="display:none"><b id="topTitle">Dashboard</b></div><div class="actions"><div class="biki-language-control"><label for="bikiLanguageSelect" class="biki-lang-label">🌐 Language</label><select id="bikiLanguageSelect" aria-label="Website language"><option value="en">English</option><option value="bn">বাংলা</option><option value="hi">हिन्दी</option></select></div><div class="avatar">AD</div><button class="logout-btn" type="button" onclick="bikiManualLock()" title="Lock screen (Ctrl+L or Alt+L)">🔒 Lock</button><button class="logout-btn" onclick="logout()">Logout</button></div></header><div class="content">
 <section class="page active" id="dashboard"><div class="head"><div><h1>স্বাগতম! 👋</h1><p>আপনার দোকানের আজকের হিসাব এক নজরে দেখুন।</p></div><button class="primary" onclick="show('transactions')">＋ Add New Entry</button></div>
 <div class="biki-v2-hero"><div><h2>Business Command Center</h2><p>Today’s performance · Sales insights · Smart alerts</p></div><button type="button" onclick="show('sales')">＋ Create Invoice</button></div>
 <div class="biki-v2-kpis"><div class="biki-v2-kpi"><small>TODAY'S BILLS</small><strong id="v2TodayBills">0</strong></div><div class="biki-v2-kpi"><small>TODAY'S SALES</small><strong id="v2TodaySales">₹0</strong></div><div class="biki-v2-kpi"><small>LOW STOCK PRODUCTS</small><strong id="v2LowStock">0</strong></div></div>
@@ -1084,29 +1084,44 @@ $('credentialsForm').onsubmit=e=>{e.preventDefault();let u=$('newUsername').valu
 // Auto-lock after 5 minutes without user activity. Unlock with existing login credentials.
 const BIKI_LOCK_AFTER_MS=5*60*1000;
 let bikiLastActivity=Number(sessionStorage.getItem('biki_last_activity'))||Date.now();
-// Unified screen lock: NEVER change authentication state when locking.
 function bikiLockScreen(reason){
  if(sessionStorage.getItem('biki_logged_in')!=='yes')return;
- if(typeof window.bikiPinLockNow==='function'){
-  window.bikiPinLockNow();
- }else if(reason==='manual'){
-  alert('PIN Lock প্রস্তুত হচ্ছে। আবার চেষ্টা করুন।');
- }
+ sessionStorage.removeItem('biki_logged_in');
+ sessionStorage.removeItem('biki_last_activity');
+ $('loginOverlay').style.display='grid';
+ $('loginSubtitle').textContent=reason==='manual'?'🔒 Screen Locked — PIN দিয়ে Unlock করুন।':'🔒 ৫ মিনিট ব্যবহার না করায় স্ক্রিন লক হয়েছে। আবার Login করুন।';
+ $('loginPass').value='';
+ bikiShowLoginMode(!bikiIsStaff()&&!!localStorage.getItem('biki_screen_lock_pin'));
 }
-function bikiManualLock(){bikiLockScreen('manual');}
-// Attempt Ctrl+L PIN lock before other application handlers; also support Alt+L.
-// Some browsers reserve Ctrl+L for their address bar and can override web-page shortcuts.
-// Neither shortcut may change the logged-in session.
+function bikiManualLock(){
+ if(sessionStorage.getItem('biki_logged_in')!=='yes')return;
+ bikiLockScreen('manual');
+ const target=$('pinUnlockForm').style.display!=='none' ? $('unlockPin') : $('loginUser');
+ if(target)target.focus();
+}
+// Ctrl+L is reserved for the browser address bar in many browsers.
+// Try it when the page receives the event; Alt+L and the Lock button are fallbacks.
 document.addEventListener('keydown',function(event){
- const key=String(event.key||'').toLowerCase();
- const ctrlL=event.ctrlKey&&!event.altKey&&!event.metaKey&&!event.shiftKey&&key==='l';
- const altL=event.altKey&&!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&key==='l';
+ const ctrlL=event.ctrlKey&&!event.altKey&&!event.metaKey&&event.key.toLowerCase()==='l';
+ const altL=event.altKey&&!event.ctrlKey&&!event.metaKey&&event.key.toLowerCase()==='l';
  if((ctrlL||altL)&&sessionStorage.getItem('biki_logged_in')==='yes'){
-  event.preventDefault();event.stopImmediatePropagation();bikiManualLock();
+  event.preventDefault();event.stopPropagation();bikiManualLock();
  }
 },true);
-// The PIN module below owns the single five-minute inactivity timer.
-// Do not run the legacy login-overlay inactivity timer in parallel.
+function bikiCheckInactivity(){
+ if(sessionStorage.getItem('biki_logged_in')!=='yes')return;
+ if(Date.now()-bikiLastActivity>=BIKI_LOCK_AFTER_MS)bikiLockScreen();
+}
+function bikiTrackActivity(){
+ if(sessionStorage.getItem('biki_logged_in')!=='yes')return;
+ if(Date.now()-bikiLastActivity>=BIKI_LOCK_AFTER_MS){bikiLockScreen();return;}
+ bikiLastActivity=Date.now();
+ sessionStorage.setItem('biki_last_activity',String(bikiLastActivity));
+}
+['pointerdown','keydown','touchstart','wheel','scroll'].forEach(eventName=>document.addEventListener(eventName,bikiTrackActivity,{passive:true}));
+window.addEventListener('focus',bikiCheckInactivity);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)bikiCheckInactivity()});
+setInterval(bikiCheckInactivity,1000);
 // Refresh today-only dashboard totals after local midnight or when a tab resumes.
 setInterval(()=>{if(bikiLocalToday()!==bikiDashboardDay)render()},15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden && bikiLocalToday()!==bikiDashboardDay)render()});
@@ -1324,37 +1339,4 @@ function refresh(){if(!el('businessV2'))return;purchases();orders();tickets();at
 <script src="supabase-pdf.js"></script>
 <script src="biki-telegram-alert.js"></script>
 <script src="firebase-sync.js"></script>
-<style id="biki-pin-styles">
-#bikiPinOverlay[hidden]{display:none!important}#bikiPinOverlay{position:fixed;inset:0;z-index:2147483646;background:linear-gradient(135deg,#071b3b,#0b3674);display:flex;align-items:center;justify-content:center;padding:18px;color:#142a48;font-family:Arial,sans-serif}#bikiPinOverlay .pin-box{width:min(100%,410px);background:#fff;padding:27px;border-radius:19px;box-shadow:0 20px 70px #0005;text-align:center}#bikiPinOverlay input{font-size:25px;text-align:center;letter-spacing:8px;width:100%;padding:13px;border:1px solid #bdcce0;border-radius:9px}#bikiPinOverlay button,.biki-pin-panel button{background:#0755d9;color:white;border:0;border-radius:9px;padding:12px 17px;cursor:pointer;font-weight:bold}#bikiPinOverlay .pin-error{min-height:24px;color:#c02626;margin:10px}#bikiPinOverlay .pin-hint{font-size:12px;color:#60738c}.biki-pin-panel{margin-top:18px;padding:20px;border:1px solid #d6e1f0;border-radius:12px;background:#fff}.biki-pin-panel input{max-width:210px;padding:11px;border:1px solid #bccbdf;border-radius:8px;margin:5px}.biki-pin-panel .pin-status{color:#35516f;margin:8px 0}
-</style>
-<div id="bikiPinOverlay" hidden aria-modal="true" role="dialog" aria-label="Billing screen locked"><div class="pin-box"><div style="font-size:37px">🔒</div><h2>BIKI Billing Locked</h2><p>৫ মিনিট নিষ্ক্রিয় থাকার কারণে Screen Lock হয়েছে</p><form id="bikiPinUnlockForm"><input id="bikiPinUnlockInput" type="password" inputmode="numeric" pattern="[0-9]{4,6}" minlength="4" maxlength="6" autocomplete="off" placeholder="৪–৬ সংখ্যার PIN" required/><div id="bikiPinError" class="pin-error" aria-live="polite"></div><button type="submit">🔓 Unlock Dashboard</button></form><p class="pin-hint">PIN ভুলে গেলে অ্যাকাউন্টের মূল Login দিয়ে পুনরায় প্রবেশ করলেও এই ডিভাইসের PIN মুছে যাবে না। PIN পরিবর্তনের জন্য পুরোনো PIN প্রয়োজন।</p></div></div>
-<script id="biki-pin-feature">
-(function(){'use strict';
-const KEY='biki_screen_pin_v1', LOCK='biki_screen_locked_v1', TIMEOUT=300000;
-let lastActive=Date.now(), lastVerify=0, failed=0, busy=false;
-const el=id=>document.getElementById(id);
-const isPublic=()=>{const p=el('bikiPublicHome');return !!(p&&!p.hidden)};
-const isDashboard=()=>sessionStorage.getItem('biki_logged_in')==='yes' && !isPublic() && !!document.querySelector('.page.active');
-const getRecord=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch{return null}};
-const bytes=arr=>Array.from(arr).map(x=>x.toString(16).padStart(2,'0')).join('');
-const unhex=hex=>new Uint8Array((hex.match(/.{2}/g)||[]).map(x=>parseInt(x,16)));
-async function derive(pin,salt){const raw=await crypto.subtle.importKey('raw',new TextEncoder().encode(pin),'PBKDF2',false,['deriveBits']);return bytes(new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:unhex(salt),iterations:150000,hash:'SHA-256'},raw,256)))}
-async function verify(pin){const rec=getRecord();if(!rec||!/^\d{4,6}$/.test(pin))return false;return (await derive(pin,rec.salt))===rec.hash}
-async function setPin(pin){const salt=bytes(crypto.getRandomValues(new Uint8Array(16)));localStorage.setItem(KEY,JSON.stringify({v:1,salt,hash:await derive(pin,salt)}));sessionStorage.removeItem(LOCK);refresh();}
-function refresh(){const st=el('bikiPinSettingsStatus');if(st)st.textContent=getRecord()?'PIN চালু আছে · ৫ মিনিট পর Auto Lock হবে':'PIN এখনও সেট করা হয়নি · সেট করলে Auto Lock চালু হবে';}
-function lock(){if(!getRecord()||!isDashboard())return;sessionStorage.setItem(LOCK,'1');const p=el('bikiPinOverlay');p.hidden=false;el('bikiPinUnlockInput').value='';el('bikiPinError').textContent='';setTimeout(()=>el('bikiPinUnlockInput').focus(),40)}
-function unlock(){sessionStorage.removeItem(LOCK);el('bikiPinOverlay').hidden=true;failed=0;lastActive=Date.now();if(typeof bikiLastActivity!=='undefined'){bikiLastActivity=Date.now();sessionStorage.setItem('biki_last_activity',String(bikiLastActivity));}}
-window.bikiPinLockNow=()=>{if(getRecord())lock();else alert('প্রথমে Settings → Auto Screen Lock & PIN Security থেকে PIN সেট করুন।')};
-function renderSettings(){const host=el('settings');if(!host||el('bikiPinPanel'))return;const div=document.createElement('div');div.id='bikiPinPanel';div.className='biki-pin-panel';div.innerHTML='<h3>🔒 Auto Screen Lock & PIN Security</h3><p>৫ মিনিট কোনো কাজ না করলে Billing Dashboard Lock হবে। ৪–৬ সংখ্যার PIN দিয়ে Unlock করুন। এই PIN শুধু বর্তমান Browser/Device-এ সংরক্ষিত।</p><p id="bikiPinSettingsStatus" class="pin-status"></p><form id="bikiPinSetForm"><input id="bikiPinOld" type="password" inputmode="numeric" maxlength="6" placeholder="Old PIN (if set)" autocomplete="off"><input id="bikiPinNew" type="password" inputmode="numeric" minlength="4" maxlength="6" placeholder="New 4–6 digit PIN" required autocomplete="new-password"><input id="bikiPinConfirm" type="password" inputmode="numeric" minlength="4" maxlength="6" placeholder="Confirm new PIN" required autocomplete="new-password"><button type="submit">Set / Change PIN</button></form><p id="bikiPinSetResult" aria-live="polite"></p><button type="button" id="bikiPinLockNow" style="margin-top:8px">🔒 Lock Now</button>';
-host.appendChild(div);refresh();el('bikiPinSetForm').addEventListener('submit',async e=>{e.preventDefault();const msg=el('bikiPinSetResult');msg.textContent='Checking…';if(busy)return;busy=true;try{if(!window.crypto?.subtle){msg.textContent='Secure context (HTTPS) প্রয়োজন';return}const old=el('bikiPinOld').value,now=el('bikiPinNew').value,confirm=el('bikiPinConfirm').value;if(!/^\d{4,6}$/.test(now)){msg.textContent='PIN ৪–৬টি ইংরেজি সংখ্যা হতে হবে';return}if(now!==confirm){msg.textContent='New PIN ও Confirm PIN মিলছে না';return}if(getRecord()&&!(await verify(old))){msg.textContent='Old PIN ভুল';return}await setPin(now);el('bikiPinSetForm').reset();msg.textContent='✓ PIN সফলভাবে সেট হয়েছে। ৫ মিনিট পর Auto Lock হবে।'}catch(err){msg.textContent='PIN সেট করা যায়নি: '+err.message}finally{busy=false}});el('bikiPinLockNow').onclick=()=>{if(getRecord())lock();else el('bikiPinSetResult').textContent='প্রথমে PIN সেট করুন'};}
-function init(){renderSettings();el('bikiPinUnlockForm').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;const input=el('bikiPinUnlockInput'),msg=el('bikiPinError');if(Date.now()-lastVerify<1000)return;lastVerify=Date.now();busy=true;try{if(await verify(input.value)){unlock()}else{failed++;msg.textContent='ভুল PIN। আবার চেষ্টা করুন।';input.value='';if(failed>=5){msg.textContent='অনেকবার ভুল PIN দেওয়া হয়েছে। ৩০ সেকেন্ড অপেক্ষা করুন।';input.disabled=true;setTimeout(()=>{input.disabled=false;failed=0;msg.textContent='';input.focus()},30000)}}}catch{msg.textContent='Unlock করা যায়নি'}finally{busy=false}});
-for(const event of ['pointerdown','keydown','touchstart','scroll'])document.addEventListener(event,e=>{if(el('bikiPinOverlay').hidden&&isDashboard()&&e.isTrusted)lastActive=Date.now()},{passive:true});
-setInterval(()=>{if(!getRecord()||!isDashboard())return;if(sessionStorage.getItem(LOCK)==='1'){if(el('bikiPinOverlay').hidden)lock();return}if(Date.now()-lastActive>=TIMEOUT)lock()},1000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&getRecord()&&isDashboard()&&Date.now()-lastActive>=TIMEOUT)lock()});
-window.addEventListener('pageshow',()=>{if(sessionStorage.getItem(LOCK)==='1'&&isDashboard())lock()});
-if(sessionStorage.getItem(LOCK)==='1'&&isDashboard())lock();
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
-</script>
 </body></html>
