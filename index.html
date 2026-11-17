@@ -420,7 +420,7 @@ function bikiFilterPublicServices(){
 <nav class="nav">
 <button class="active" data-page="dashboard">▦　Dashboard</button><button data-page="sales">🛒　Sales / বিক্রি</button><button data-page="transactions">◉　Income & Expense</button><button data-page="products">▣　Products</button><button data-page="customers">♙　Customers</button><button data-page="dues">৳　Due Management</button><button data-page="services">▤　Services</button><button data-page="reports">▥　Reports</button><button data-page="settings">⚙　Settings</button>
 </nav><div class="bottom">Secure Workspace<br>© 2026 BIKI ONLINE SERVICE CENTER</div></aside>
-<main><header class="top"><div class="top-business-brand"><div class="logo" id="dashboardLogo">B</div><div><b id="topBusinessName">BIKI ONLINE SERVICE CENTER</b><div><small id="topBusinessContact">Galimpur Bazar · Chanchal · Malda</small></div></div></div><div class="actions"><div id="bikiLiveClock" class="biki-live-clock" role="timer" aria-label="Live date and time"><span id="bikiClockDate">Loading date...</span><strong id="bikiClockTime">--:--:--</strong></div></div><div style="display:none"><b id="topTitle">Dashboard</b></div><div class="actions"><div class="biki-language-control"><label for="bikiLanguageSelect" class="biki-lang-label">🌐 Language</label><select id="bikiLanguageSelect" aria-label="Website language"><option value="en">English</option><option value="bn">বাংলা</option><option value="hi">हिन्दी</option></select></div><div class="avatar">AD</div><button class="logout-btn" type="button" onclick="bikiManualLock()" title="Lock with PIN (Alt+L)">🔒 Lock</button><button class="logout-btn" onclick="logout()">Logout</button></div></header><div class="content">
+<main><header class="top"><div class="top-business-brand"><div class="logo" id="dashboardLogo">B</div><div><b id="topBusinessName">BIKI ONLINE SERVICE CENTER</b><div><small id="topBusinessContact">Galimpur Bazar · Chanchal · Malda</small></div></div></div><div class="actions"><div id="bikiLiveClock" class="biki-live-clock" role="timer" aria-label="Live date and time"><span id="bikiClockDate">Loading date...</span><strong id="bikiClockTime">--:--:--</strong></div></div><div style="display:none"><b id="topTitle">Dashboard</b></div><div class="actions"><div class="biki-language-control"><label for="bikiLanguageSelect" class="biki-lang-label">🌐 Language</label><select id="bikiLanguageSelect" aria-label="Website language"><option value="en">English</option><option value="bn">বাংলা</option><option value="hi">हिन्दी</option></select></div><div class="avatar">AD</div><button class="logout-btn" type="button" onclick="bikiManualLock()" title="Lock with PIN (Ctrl+L where browser permits, or Alt+L)">🔒 Lock</button><button class="logout-btn" onclick="logout()">Logout</button></div></header><div class="content">
 <section class="page active" id="dashboard"><div class="head"><div><h1>স্বাগতম! 👋</h1><p>আপনার দোকানের আজকের হিসাব এক নজরে দেখুন।</p></div><button class="primary" onclick="show('transactions')">＋ Add New Entry</button></div>
 <div class="biki-v2-hero"><div><h2>Business Command Center</h2><p>Today’s performance · Sales insights · Smart alerts</p></div><button type="button" onclick="show('sales')">＋ Create Invoice</button></div>
 <div class="biki-v2-kpis"><div class="biki-v2-kpi"><small>TODAY'S BILLS</small><strong id="v2TodayBills">0</strong></div><div class="biki-v2-kpi"><small>TODAY'S SALES</small><strong id="v2TodaySales">₹0</strong></div><div class="biki-v2-kpi"><small>LOW STOCK PRODUCTS</small><strong id="v2LowStock">0</strong></div></div>
@@ -1094,11 +1094,14 @@ function bikiLockScreen(reason){
  }
 }
 function bikiManualLock(){bikiLockScreen('manual');}
-// Browser reserves Ctrl+L for its address bar. Alt+L is the supported PIN-lock shortcut.
-// The keyboard shortcut must never invoke logout or change authentication state.
+// Attempt Ctrl+L PIN lock before other application handlers; also support Alt+L.
+// Some browsers reserve Ctrl+L for their address bar and can override web-page shortcuts.
+// Neither shortcut may change the logged-in session.
 document.addEventListener('keydown',function(event){
  const key=String(event.key||'').toLowerCase();
- if(event.altKey&&!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&key==='l'&&sessionStorage.getItem('biki_logged_in')==='yes'){
+ const ctrlL=event.ctrlKey&&!event.altKey&&!event.metaKey&&!event.shiftKey&&key==='l';
+ const altL=event.altKey&&!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&key==='l';
+ if((ctrlL||altL)&&sessionStorage.getItem('biki_logged_in')==='yes'){
   event.preventDefault();event.stopImmediatePropagation();bikiManualLock();
  }
 },true);
