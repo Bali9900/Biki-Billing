@@ -1084,50 +1084,28 @@ $('credentialsForm').onsubmit=e=>{e.preventDefault();let u=$('newUsername').valu
 // Auto-lock after 5 minutes without user activity. Unlock with existing login credentials.
 const BIKI_LOCK_AFTER_MS=5*60*1000;
 let bikiLastActivity=Number(sessionStorage.getItem('biki_last_activity'))||Date.now();
+// Unified screen lock: NEVER change authentication state when locking.
 function bikiLockScreen(reason){
- // Route both the header Lock button and the legacy inactivity timer to the new PIN overlay.
- if(localStorage.getItem('biki_screen_pin_v1')){
-  if(typeof window.bikiPinLockNow==='function')window.bikiPinLockNow();
-  return;
- }
- if(reason==='manual'){alert('প্রথমে Settings → Auto Screen Lock & PIN Security থেকে PIN সেট করুন।');return;}
- return; // No PIN configured: never log the user out merely because the lock timer fired.
- /*
- sessionStorage.removeItem('biki_logged_in');
- sessionStorage.removeItem('biki_last_activity');
- $('loginOverlay').style.display='grid';
- $('loginSubtitle').textContent=reason==='manual'?'🔒 Screen Locked — PIN দিয়ে Unlock করুন।':'🔒 ৫ মিনিট ব্যবহার না করায় স্ক্রিন লক হয়েছে। আবার Login করুন।';
- $('loginPass').value='';
- bikiShowLoginMode(!bikiIsStaff()&&!!localStorage.getItem('biki_screen_lock_pin'));
- */
-}
-function bikiManualLock(){
  if(sessionStorage.getItem('biki_logged_in')!=='yes')return;
- bikiLockScreen('manual');
+ if(typeof window.bikiPinLockNow==='function'){
+  window.bikiPinLockNow();
+ }else if(reason==='manual'){
+  alert('PIN Lock প্রস্তুত হচ্ছে। আবার চেষ্টা করুন।');
+ }
 }
-// Ctrl+L is reserved for the browser address bar in many browsers.
-// Try it when the page receives the event; Alt+L and the Lock button are fallbacks.
+function bikiManualLock(){bikiLockScreen('manual');}
+// Ctrl+L belongs to the browser's address bar; handle it only when the browser
+// delivers it to this page. Ctrl+Shift+L / Alt+L are additional shortcuts.
 document.addEventListener('keydown',function(event){
- const ctrlL=event.ctrlKey&&!event.altKey&&!event.metaKey&&event.key.toLowerCase()==='l';
- const altL=event.altKey&&!event.ctrlKey&&!event.metaKey&&event.key.toLowerCase()==='l';
+ const key=String(event.key||'').toLowerCase();
+ const ctrlL=event.ctrlKey&&!event.altKey&&!event.metaKey&&key==='l';
+ const altL=event.altKey&&!event.ctrlKey&&!event.metaKey&&key==='l';
  if((ctrlL||altL)&&sessionStorage.getItem('biki_logged_in')==='yes'){
-  event.preventDefault();event.stopPropagation();bikiManualLock();
+  event.preventDefault();event.stopImmediatePropagation();bikiManualLock();
  }
 },true);
-function bikiCheckInactivity(){
- if(sessionStorage.getItem('biki_logged_in')!=='yes')return;
- if(Date.now()-bikiLastActivity>=BIKI_LOCK_AFTER_MS)bikiLockScreen();
-}
-function bikiTrackActivity(){
- if(sessionStorage.getItem('biki_logged_in')!=='yes')return;
- if(Date.now()-bikiLastActivity>=BIKI_LOCK_AFTER_MS){bikiLockScreen();return;}
- bikiLastActivity=Date.now();
- sessionStorage.setItem('biki_last_activity',String(bikiLastActivity));
-}
-['pointerdown','keydown','touchstart','wheel','scroll'].forEach(eventName=>document.addEventListener(eventName,bikiTrackActivity,{passive:true}));
-window.addEventListener('focus',bikiCheckInactivity);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)bikiCheckInactivity()});
-setInterval(bikiCheckInactivity,1000);
+// The PIN module below owns the single five-minute inactivity timer.
+// Do not run the legacy login-overlay inactivity timer in parallel.
 // Refresh today-only dashboard totals after local midnight or when a tab resumes.
 setInterval(()=>{if(bikiLocalToday()!==bikiDashboardDay)render()},15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden && bikiLocalToday()!==bikiDashboardDay)render()});
@@ -1355,7 +1333,7 @@ const KEY='biki_screen_pin_v1', LOCK='biki_screen_locked_v1', TIMEOUT=300000;
 let lastActive=Date.now(), lastVerify=0, failed=0, busy=false;
 const el=id=>document.getElementById(id);
 const isPublic=()=>{const p=el('bikiPublicHome');return !!(p&&!p.hidden)};
-const isDashboard=()=>!isPublic() && !!document.querySelector('.page.active');
+const isDashboard=()=>sessionStorage.getItem('biki_logged_in')==='yes' && !isPublic() && !!document.querySelector('.page.active');
 const getRecord=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch{return null}};
 const bytes=arr=>Array.from(arr).map(x=>x.toString(16).padStart(2,'0')).join('');
 const unhex=hex=>new Uint8Array((hex.match(/.{2}/g)||[]).map(x=>parseInt(x,16)));
