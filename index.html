@@ -1085,19 +1085,25 @@ $('credentialsForm').onsubmit=e=>{e.preventDefault();let u=$('newUsername').valu
 const BIKI_LOCK_AFTER_MS=5*60*1000;
 let bikiLastActivity=Number(sessionStorage.getItem('biki_last_activity'))||Date.now();
 function bikiLockScreen(reason){
- if(sessionStorage.getItem('biki_logged_in')!=='yes')return;
+ // Route both the header Lock button and the legacy inactivity timer to the new PIN overlay.
+ if(localStorage.getItem('biki_screen_pin_v1')){
+  if(typeof window.bikiPinLockNow==='function')window.bikiPinLockNow();
+  return;
+ }
+ if(reason==='manual'){alert('প্রথমে Settings → Auto Screen Lock & PIN Security থেকে PIN সেট করুন।');return;}
+ return; // No PIN configured: never log the user out merely because the lock timer fired.
+ /*
  sessionStorage.removeItem('biki_logged_in');
  sessionStorage.removeItem('biki_last_activity');
  $('loginOverlay').style.display='grid';
  $('loginSubtitle').textContent=reason==='manual'?'🔒 Screen Locked — PIN দিয়ে Unlock করুন।':'🔒 ৫ মিনিট ব্যবহার না করায় স্ক্রিন লক হয়েছে। আবার Login করুন।';
  $('loginPass').value='';
  bikiShowLoginMode(!bikiIsStaff()&&!!localStorage.getItem('biki_screen_lock_pin'));
+ */
 }
 function bikiManualLock(){
  if(sessionStorage.getItem('biki_logged_in')!=='yes')return;
  bikiLockScreen('manual');
- const target=$('pinUnlockForm').style.display!=='none' ? $('unlockPin') : $('loginUser');
- if(target)target.focus();
 }
 // Ctrl+L is reserved for the browser address bar in many browsers.
 // Try it when the page receives the event; Alt+L and the Lock button are fallbacks.
@@ -1358,7 +1364,8 @@ async function verify(pin){const rec=getRecord();if(!rec||!/^\d{4,6}$/.test(pin)
 async function setPin(pin){const salt=bytes(crypto.getRandomValues(new Uint8Array(16)));localStorage.setItem(KEY,JSON.stringify({v:1,salt,hash:await derive(pin,salt)}));sessionStorage.removeItem(LOCK);refresh();}
 function refresh(){const st=el('bikiPinSettingsStatus');if(st)st.textContent=getRecord()?'PIN চালু আছে · ৫ মিনিট পর Auto Lock হবে':'PIN এখনও সেট করা হয়নি · সেট করলে Auto Lock চালু হবে';}
 function lock(){if(!getRecord()||!isDashboard())return;sessionStorage.setItem(LOCK,'1');const p=el('bikiPinOverlay');p.hidden=false;el('bikiPinUnlockInput').value='';el('bikiPinError').textContent='';setTimeout(()=>el('bikiPinUnlockInput').focus(),40)}
-function unlock(){sessionStorage.removeItem(LOCK);el('bikiPinOverlay').hidden=true;failed=0;lastActive=Date.now();}
+function unlock(){sessionStorage.removeItem(LOCK);el('bikiPinOverlay').hidden=true;failed=0;lastActive=Date.now();if(typeof bikiLastActivity!=='undefined'){bikiLastActivity=Date.now();sessionStorage.setItem('biki_last_activity',String(bikiLastActivity));}}
+window.bikiPinLockNow=()=>{if(getRecord())lock();else alert('প্রথমে Settings → Auto Screen Lock & PIN Security থেকে PIN সেট করুন।')};
 function renderSettings(){const host=el('settings');if(!host||el('bikiPinPanel'))return;const div=document.createElement('div');div.id='bikiPinPanel';div.className='biki-pin-panel';div.innerHTML='<h3>🔒 Auto Screen Lock & PIN Security</h3><p>৫ মিনিট কোনো কাজ না করলে Billing Dashboard Lock হবে। ৪–৬ সংখ্যার PIN দিয়ে Unlock করুন। এই PIN শুধু বর্তমান Browser/Device-এ সংরক্ষিত।</p><p id="bikiPinSettingsStatus" class="pin-status"></p><form id="bikiPinSetForm"><input id="bikiPinOld" type="password" inputmode="numeric" maxlength="6" placeholder="Old PIN (if set)" autocomplete="off"><input id="bikiPinNew" type="password" inputmode="numeric" minlength="4" maxlength="6" placeholder="New 4–6 digit PIN" required autocomplete="new-password"><input id="bikiPinConfirm" type="password" inputmode="numeric" minlength="4" maxlength="6" placeholder="Confirm new PIN" required autocomplete="new-password"><button type="submit">Set / Change PIN</button></form><p id="bikiPinSetResult" aria-live="polite"></p><button type="button" id="bikiPinLockNow" style="margin-top:8px">🔒 Lock Now</button>';
 host.appendChild(div);refresh();el('bikiPinSetForm').addEventListener('submit',async e=>{e.preventDefault();const msg=el('bikiPinSetResult');msg.textContent='Checking…';if(busy)return;busy=true;try{if(!window.crypto?.subtle){msg.textContent='Secure context (HTTPS) প্রয়োজন';return}const old=el('bikiPinOld').value,now=el('bikiPinNew').value,confirm=el('bikiPinConfirm').value;if(!/^\d{4,6}$/.test(now)){msg.textContent='PIN ৪–৬টি ইংরেজি সংখ্যা হতে হবে';return}if(now!==confirm){msg.textContent='New PIN ও Confirm PIN মিলছে না';return}if(getRecord()&&!(await verify(old))){msg.textContent='Old PIN ভুল';return}await setPin(now);el('bikiPinSetForm').reset();msg.textContent='✓ PIN সফলভাবে সেট হয়েছে। ৫ মিনিট পর Auto Lock হবে।'}catch(err){msg.textContent='PIN সেট করা যায়নি: '+err.message}finally{busy=false}});el('bikiPinLockNow').onclick=()=>{if(getRecord())lock();else el('bikiPinSetResult').textContent='প্রথমে PIN সেট করুন'};}
 function init(){renderSettings();el('bikiPinUnlockForm').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;const input=el('bikiPinUnlockInput'),msg=el('bikiPinError');if(Date.now()-lastVerify<1000)return;lastVerify=Date.now();busy=true;try{if(await verify(input.value)){unlock()}else{failed++;msg.textContent='ভুল PIN। আবার চেষ্টা করুন।';input.value='';if(failed>=5){msg.textContent='অনেকবার ভুল PIN দেওয়া হয়েছে। ৩০ সেকেন্ড অপেক্ষা করুন।';input.disabled=true;setTimeout(()=>{input.disabled=false;failed=0;msg.textContent='';input.focus()},30000)}}}catch{msg.textContent='Unlock করা যায়নি'}finally{busy=false}});
