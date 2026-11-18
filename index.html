@@ -597,13 +597,43 @@ function render(){
  $('recentRows').innerHTML=data.transactions.slice(-5).reverse().map(x=>`<tr><td><b>${esc(x.title)}</b><small>${esc(x.kind)}</small></td><td>${x.date}</td><td>${x.kind}</td><td class="right">${money(x.amount)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">No transactions yet</td></tr>';
  $('productRows').innerHTML=data.products.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.sku)}</td><td>${money(p.purchase)}</td><td>${money(p.selling)}</td><td>${p.qty} ${p.qty<=p.low?'<span class="amber">LOW</span>':''}</td><td class="green">${money(p.selling-p.purchase)}</td><td class="actions"><button class="outline" onclick="editProduct('${p.id}')">Edit</button><button class="danger" onclick="del('products','${p.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">কোনো Product নেই</td></tr>';
  $('customerRows').innerHTML=data.customers.map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(c.phone)}</td><td>${esc(c.address)}</td><td><button class="danger" onclick="del('customers','${c.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="4" class="empty">কোনো Customer নেই</td></tr>';
- $('dueRows').innerHTML=data.dues.map(d=>`<tr><td>${esc(d.name)}</td><td>${d.phone?`<a href="tel:${esc(d.phone)}">${esc(d.phone)}</a>`:'—'}</td><td>${esc(d.date||"—")}</td><td>${esc(d.note)}${d.receiptNo?'<small>Receipt: '+esc(d.receiptNo)+'</small>':''}</td><td>${money(d.amount)}</td><td>${d.saleId?'<button class="outline" onclick="alert(\'Invoice-linked Due: use Business Pro V2 → Partial Due Payment to record collection.\')">Collect via Ledger</button>':`<button class="danger" onclick="del('dues','${d.id}')">Received / Delete</button>`}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">কোনো বাকি নেই</td></tr>';
+ $('dueRows').innerHTML=data.dues.map(d=>`<tr><td>${esc(d.name)}</td><td>${d.phone?`<a href="tel:${esc(d.phone)}">${esc(d.phone)}</a>`:'—'}</td><td>${esc(d.date||"—")}</td><td>${esc(d.note)}${d.receiptNo?'<small>Receipt: '+esc(d.receiptNo)+'</small>':''}</td><td>${money(d.amount)}</td><td>${d.saleId?'<button class="outline" onclick="bikiCollectInvoiceDue(\'${d.id}\')">Collect via Ledger</button>':`<button class="danger" onclick="del('dues','${d.id}')">Received / Delete</button>`}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">কোনো বাকি নেই</td></tr>';
  $('serviceList').innerHTML=data.services.map(s=>`<span class="btn outline">${esc(s)}</span>`).join('');
  renderSalesReport();
  const previousSelection=$('saleProduct').value;
  $('saleProduct').innerHTML='<option value="">-- Product বাছুন --</option>'+data.products.map(p=>`<option value="${p.id}">${esc(p.name)} — Stock: ${p.qty} — ${money(p.selling)}</option>`).join('');
  $('saleProduct').value=previousSelection;
  renderSalesHistory();
+}
+
+function bikiCollectInvoiceDue(dueId){
+ const d=(data.dues||[]).find(x=>String(x.id)===String(dueId));
+ if(!d)return alert('Due record পাওয়া যায়নি।');
+ const balance=Math.round(Number(d.amount||0)*100)/100;
+ if(!(balance>0))return alert('এই Receipt-এর কোনো বাকি নেই।');
+ const raw=prompt('Receipt: '+(d.receiptNo||'—')+'\nCustomer: '+(d.name||'—')+'\nRemaining: ₹'+balance.toFixed(2)+'\n\nReceived Amount লিখুন:',balance.toFixed(2));
+ if(raw===null)return;
+ if(!/^\d+(?:\.\d{1,2})?$/.test(raw.trim()))return alert('সঠিক Amount লিখুন।');
+ const amount=Number(raw.trim());
+ if(!(amount>0)||amount>balance)return alert('Amount বাকি টাকার মধ্যে হতে হবে।');
+ const modeInput=prompt('Payment Method: Cash / UPI / Bank','Cash');
+ if(modeInput===null)return;
+ const m=modeInput.trim().toUpperCase();
+ if(!['CASH','UPI','BANK'].includes(m))return alert('Cash, UPI অথবা Bank লিখুন।');
+ const method=m==='CASH'?'Cash':m==='BANK'?'Bank':'UPI';
+ const remaining=Math.round((balance-amount)*100)/100;
+ if(!confirm('Receipt '+(d.receiptNo||'—')+'\nReceived ₹'+amount.toFixed(2)+'\nRemaining ₹'+remaining.toFixed(2)+'\nConfirm?'))return;
+ data.proV2=data.proV2||{};data.proV2.payments=data.proV2.payments||[];
+ const now=new Date(),date=typeof bikiLocalToday==='function'?bikiLocalToday():now.toISOString().slice(0,10);
+ const payId='v2-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+ const p={id:payId,dueId:d.id,date,at:now.toISOString(),amount,method,customer:d.name||'',receiptNo:d.receiptNo||''};
+ d.amount=remaining;
+ data.proV2.payments.push(p);
+ data.transactions.push({id:payId+'-tx',kind:'income',date,title:'Due Payment: '+(d.receiptNo||d.note||d.id),customer:d.name||'',amount,mode:method,dueId:d.id,receiptNo:d.receiptNo||''});
+ if(d.saleId){const sale=(data.sales||[]).find(x=>x.id===d.saleId);if(sale)sale.dueAmount=remaining;}
+ save();
+ try{window.bikiTelegramAlert?.enqueue({type:'due_payment',customer:d.name||'',amount,remaining_due:remaining,payment_mode:method,reference:d.receiptNo||d.id},'duepay:'+payId)}catch(e){console.warn(e)}
+ alert('✓ Payment saved. Remaining ₹'+remaining.toFixed(2));
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function id(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
