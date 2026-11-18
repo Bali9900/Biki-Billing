@@ -301,6 +301,7 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
 #bikiPublicHome .biki-wbgb-official-banner img{display:block;width:100%;height:auto;border-radius:16px;box-shadow:0 16px 38px rgba(67,18,41,.16);border:2px solid #fff}
 #bikiPublicHome .biki-wbgb-note{font-size:11px;color:#667789;margin:10px 0 0;line-height:1.6}
 </style>
+<style id="biki-bill-payment-stage-style">.biki-bill-payment-stage{margin:17px 0 14px;padding:17px;border:1px solid #d7e5f8;border-radius:13px;background:linear-gradient(135deg,#f5faff,#fff)}.biki-bill-payment-stage .formgrid{margin-top:9px}.biki-bill-payment-stage .field{min-width:0}@media(max-width:600px){.biki-bill-payment-stage{padding:12px}}</style>
 </head>
 <body>
 <!-- Completely redesigned public-facing site; existing private billing logic below is retained. -->
@@ -435,8 +436,8 @@ function bikiFilterPublicServices(){
 <div class="formgrid">
 <div class="field"><label>Customer Name</label><input id="saleCustomer" placeholder="Cash Customer"></div>
 <div class="field"><label>Mobile Number</label><input id="salePhone" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" autocomplete="tel-national" placeholder="10-digit Mobile Number"></div>
-<div class="field"><label>Payment Method</label><select id="saleMode"><option>Cash</option><option>UPI</option><option>PhonePe</option><option>Paytm</option><option>Bank</option><option>Due</option></select></div><div class="field"><label>Paid Amount (₹)</label><input id="salePaid" type="number" min="0" step="0.01" placeholder="Full bill by default"></div><div class="field"><label>Due Amount (₹) — Automatic</label><input id="saleDuePreview" type="text" value="₹0.00" readonly></div>
-<div class="field"><label>Discount on Bill (₹)</label><input id="saleDiscount" type="number" min="0" step=".01" value="0"></div>
+
+
 <div class="field"><label>Item Type</label><select id="billItemType"><option value="product">Product (Stock)</option><option value="service">Service (No Stock)</option></select></div>
 <div class="field" id="billProductField"><label>Choose Product</label><select id="saleProduct"><option value="">-- Select Product --</option></select></div>
 <div class="field" id="billServiceField" style="display:none"><label>Service Name</label><input id="billServiceName" list="billServiceOptions" placeholder="PAN Card, Train Ticket, etc."><datalist id="billServiceOptions"></datalist></div>
@@ -445,6 +446,15 @@ function bikiFilterPublicServices(){
 <div class="field full"><button type="button" class="primary" id="addBillItem">＋ Add to Bill (No Print)</button></div>
 </div>
 <div class="bill-cart"><table><thead><tr><th>ITEM</th><th>QTY</th><th>RATE</th><th>AMOUNT</th><th></th></tr></thead><tbody id="billCartRows"></tbody></table></div>
+<div class="biki-bill-payment-stage" aria-label="Bill payment details">
+<h3 style="margin:0 0 5px;color:#103a78;font-size:16px">💳 Payment &amp; Discount</h3>
+<p class="sub" style="margin:0 0 13px">প্রথমে উপরে Product / Service Add to Bill করুন। তারপর Payment, Discount ও Paid Amount ঠিক করে Bill Save করুন।</p>
+<div class="formgrid">
+<div class="field"><label>Payment Method</label><select id="saleMode"><option>Cash</option><option>UPI</option><option>PhonePe</option><option>Paytm</option><option>Bank</option><option>Due</option></select></div>
+<div class="field"><label>Paid Amount (₹)</label><input id="salePaid" type="number" min="0" step="0.01" placeholder="Full bill by default"></div>
+<div class="field"><label>Due Amount (₹) — Automatic</label><input id="saleDuePreview" type="text" value="₹0.00" readonly></div>
+<div class="field"><label>Discount on Bill (₹)</label><input id="saleDiscount" type="number" min="0" step=".01" value="0"></div>
+</div></div>
 <div class="bill-actions"><button type="button" class="primary" id="saveBillBtn">✓ Save Complete Bill</button><button type="button" class="outline" id="clearBillBtn">Clear / Cancel</button></div>
 <p class="bill-muted" id="billStatus">Bill Save করার পরে Sales History থেকে Print করুন।</p></div>
 <aside class="billing-preview"><h3>Live Invoice Preview</h3><div id="billPreviewLogoWrap" style="display:none;text-align:center;margin:10px 0 8px"><img id="billPreviewLogo" alt="Business Logo" style="width:78px;height:78px;max-width:100%;object-fit:contain;border-radius:12px;background:white;padding:4px;border:1px solid #e8edf4"></div><div class="bill-muted" id="billPreviewShop">BIKI ONLINE SERVICE CENTER</div><div class="bill-muted" id="billPreviewContact"></div><hr><div id="billPreviewCustomer"></div><p class="bill-muted" id="billPreviewDate"></p><table><thead><tr><th>ITEM</th><th>QTY</th><th class="right">AMOUNT</th></tr></thead><tbody id="billPreviewRows"></tbody></table><hr><div id="billPreviewSummary"></div><div id="billPreviewQr" style="display:none;text-align:center;margin:14px auto"><img id="billPreviewQrImage" alt="UPI payment QR" style="max-width:145px;max-height:190px;object-fit:contain"><div style="font-size:12px;font-weight:700">Scan & Pay via UPI</div></div><p class="bill-note">Preview only — Print হবে শুধু আপনার Print বাটনে ক্লিক করলে।</p></aside></div>
