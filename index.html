@@ -1481,4 +1481,11 @@ if(!setup()){
 }
 })();
 </script>
+
+<style id="biki-telegram-stack-position">
+/* Stack Telegram directly above Cloud Tools, above Live Sync status. */
+#biki-telegram-open{position:fixed!important;right:16px!important;bottom:110px!important;z-index:1000003!important;}
+#biki-telegram-panel{position:fixed!important;right:16px!important;bottom:160px!important;max-height:calc(100vh - 180px)!important;overflow-y:auto!important;}
+@media(max-width:600px){#biki-telegram-open{right:9px!important;bottom:110px!important;}#biki-telegram-panel{right:9px!important;bottom:160px!important;max-width:calc(100vw - 18px)!important;}}
+</style>
 </body></html>
