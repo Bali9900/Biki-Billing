@@ -1443,4 +1443,42 @@ if(sessionStorage.getItem(LOCK)==='1'&&isDashboard())lock();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
+
+<style id="biki-cloud-tools-compact-css">
+#bikiCloudTools.biki-cloud-compact{position:fixed!important;top:110px!important;right:16px!important;bottom:auto!important;max-width:min(340px,calc(100vw - 32px))!important;width:300px!important;box-sizing:border-box!important;padding:12px!important;display:none!important;flex-direction:column!important;gap:8px!important;flex-wrap:nowrap!important;justify-content:stretch!important;background:#fff!important;border:1px solid #d8e5f7!important;border-radius:14px!important;box-shadow:0 14px 42px #102b5840!important;z-index:1000002!important}
+#bikiCloudTools.biki-cloud-compact.biki-cloud-open{display:flex!important}
+#bikiCloudTools.biki-cloud-compact button{width:100%!important;text-align:left!important;padding:11px 13px!important;box-shadow:none!important}
+#bikiCloudTools.biki-cloud-compact #bikiCloudSignout{background:#fff1f1!important;color:#a12222!important}
+#bikiCloudMenuToggle{position:fixed!important;top:64px!important;right:16px!important;z-index:1000002!important;background:#0758d7!important;color:white!important;border:0!important;border-radius:10px!important;padding:10px 14px!important;box-shadow:0 5px 16px #002d7150!important;cursor:pointer!important;font-weight:700!important;font-size:13px!important}
+#bikiCloudMenuToggle[hidden]{display:none!important}
+@media(max-width:600px){#bikiCloudMenuToggle{top:58px!important;right:9px!important}#bikiCloudTools.biki-cloud-compact{top:103px!important;right:9px!important;width:min(300px,calc(100vw - 18px))!important}}
+</style>
+<script id="biki-cloud-tools-compact-js">
+(function(){
+'use strict';
+function setup(){
+ const tools=document.getElementById('bikiCloudTools');
+ if(!tools)return false;
+ if(document.getElementById('bikiCloudMenuToggle'))return true;
+ tools.classList.add('biki-cloud-compact');
+ const toggle=document.createElement('button');
+ toggle.type='button';toggle.id='bikiCloudMenuToggle';toggle.textContent='☁ Cloud Tools ▾';
+ toggle.setAttribute('aria-controls','bikiCloudTools');toggle.setAttribute('aria-expanded','false');
+ document.body.appendChild(toggle);
+ function close(){tools.classList.remove('biki-cloud-open');toggle.textContent='☁ Cloud Tools ▾';toggle.setAttribute('aria-expanded','false')}
+ function syncVisibility(){const loggedIn=tools.style.display!=='none';toggle.hidden=!loggedIn;if(!loggedIn)close()}
+ toggle.addEventListener('click',function(e){e.stopPropagation();const open=tools.classList.toggle('biki-cloud-open');toggle.textContent=open?'☁ Cloud Tools ▴':'☁ Cloud Tools ▾';toggle.setAttribute('aria-expanded',String(open))});
+ document.addEventListener('click',function(e){if(!tools.contains(e.target)&&e.target!==toggle)close()});
+ document.addEventListener('keydown',function(e){if(e.key==='Escape')close()});
+ const observer=new MutationObserver(syncVisibility);
+ observer.observe(tools,{attributes:true,attributeFilter:['style']});
+ syncVisibility();
+ return true;
+}
+if(!setup()){
+ const observer=new MutationObserver(function(){if(setup())observer.disconnect()});
+ observer.observe(document.documentElement,{childList:true,subtree:true});
+}
+})();
+</script>
 </body></html>
