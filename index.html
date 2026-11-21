@@ -1070,7 +1070,7 @@ function bikiOpenBillWhatsApp(url){
  window.location.href=url;
 }
 document.getElementById('bikiBillWhatsAppLink').addEventListener('click',function(e){
- if(this.hasAttribute('href')){e.preventDefault();bikiOpenBillWhatsApp(this.href);}
+ e.preventDefault();if(this.dataset.saleId)sendSalesHistoryWhatsApp(this.dataset.saleId);
 });
 $('saveBillBtn').onclick=()=>{
  if(!billItems.length){alert('প্রথমে Product বা Service যোগ করুন');return}
@@ -1106,14 +1106,12 @@ $('saveBillBtn').onclick=()=>{
  $('billStatus').textContent='✓ Receipt '+s.receiptNo+' Saved! Total '+money(total)+' · Paid '+money(paid)+' · Due '+money(dueAmount)+' — Sales History থেকে Print করুন।';
  const waStatus=document.getElementById('bikiBillWhatsAppLink');
  if(waStatus){waStatus.hidden=true;waStatus.removeAttribute('href');}
- if(!old && /^[0-9]{10}$/.test(s.phone)){
+ if(!old){
   const shop=localStorage.getItem('biki_business_name')||'BIKI ONLINE SERVICE CENTER';
   const fmt=n=>'₹'+Number(n||0).toFixed(2);
   const msg=['🧾 CUSTOMER BILL',shop,'Invoice: '+s.receiptNo,'Date: '+s.date,'Customer: '+s.customer,'Items: '+s.productName,'Total Bill: '+fmt(s.total),'Paid Amount: '+fmt(s.paidAmount),'Due Amount: '+fmt(s.dueAmount),'Payment Mode: '+s.mode,'আমাদের পরিষেবা গ্রহণ করার জন্য ধন্যবাদ।'].join('\n');
   const phone='91'+s.phone;
-  const url=bikiWhatsAppDesktopUrl(phone,msg);
-  if(waStatus)waStatus.textContent='📲 Send Bill to +'+phone;
-  if(waStatus){waStatus.href=url;waStatus.hidden=false;}
+    if(waStatus){waStatus.href='#';waStatus.dataset.saleId=s.id;waStatus.textContent='📲 Send Receipt Image via WhatsApp';waStatus.hidden=false;}
   // Manual only: saving never opens WhatsApp; use the green button after saving.
  }
 
@@ -1266,31 +1264,37 @@ function historySales(){
  }).slice().sort((a,b)=>saleHistoryTimestamp(b)-saleHistoryTimestamp(a)||String(b.receiptNo||'').localeCompare(String(a.receiptNo||''),undefined,{numeric:true}));
  return {sales,invalid};
 }
-function sendSalesHistoryWhatsApp(saleId){
- const s=(data.sales||[]).find(x=>String(x.id)===String(saleId));
- if(!s){alert('এই Bill পাওয়া যায়নি। Sales History Refresh করুন।');return;}
- let phone=String(s.phone||'').replace(/\D/g,'');
- if(phone.length===12&&phone.startsWith('91'))phone=phone.slice(2);
- // No saved number: open WhatsApp Beta with the prepared receipt message,
- // allowing the user to choose a recipient in the desktop app.
- if(!/^[6-9]\d{9}$/.test(phone))phone='';
- const items=saleItems(s).map(i=>'• '+String(i.name||'Item')+' × '+Number(i.qty||1)).join('\n');
- const paid=Number(s.paidAmount);
- const due=Number(s.dueAmount);
- const lines=[
-   'BIKI ONLINE SERVICE CENTER',
-   'Bill Receipt / Invoice Summary',
-   'Receipt No: '+String(s.receiptNo||''),
-   'Date: '+String(s.date||'')+' '+String(s.time||''),
-   'Customer: '+String(s.customer||'Cash Customer'),
-   '', 'Items:',items,'',
-   'Total: '+money(Number(s.total)||0),
-   'Payment Mode: '+String(s.mode||'')
- ];
- if(Number.isFinite(paid))lines.push('Paid: '+money(paid));
- if(Number.isFinite(due)&&due>0)lines.push('Due: '+money(due));
- lines.push('','Thank you for choosing BIKI ONLINE SERVICE CENTER.');
- bikiOpenBillWhatsApp(bikiWhatsAppDesktopUrl(phone?('91'+phone):'',lines.join('\n')));
+async function sendSalesHistoryWhatsApp(saleId){
+ const s=data.sales.find(x=>String(x.id)===String(saleId)); if(!s){alert('Bill not found');return;}
+ try{
+ const items=saleItems(s), W=960, P=40;
+ const load=src=>new Promise(resolve=>{if(!src)return resolve(null);const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>resolve(null);im.src=src;});
+ const [logo,qr]=await Promise.all([load(localStorage.getItem('biki_business_logo')),load(isUpiPayment(s.mode)?localStorage.getItem('biki_upi_qr_image'):'')]);
+ const canvas=document.createElement('canvas');canvas.width=W;canvas.height=2200+items.reduce((n,i)=>n+180+String(i.name||"").length*2,0);const c=canvas.getContext('2d');
+ const blue='#073c98', navy='#08265b';let y=0;
+ function rect(x,y,w,h,color){c.fillStyle=color;c.fillRect(x,y,w,h);}
+ function txt(t,x,y,size=26,color=navy,bold=false,align='left'){c.font=(bold?'bold ':'')+size+'px Arial, sans-serif';c.fillStyle=color;c.textAlign=align;c.fillText(String(t),x,y);c.textAlign='left';}
+ function wrap(t,x,y,max,size=25,color=navy,bold=false){c.font=(bold?'bold ':'')+size+'px Arial';let line='';for(const word of String(t).split(/\s+/)){if(line && c.measureText(line+' '+word).width>max){txt(line,x,y,size,color,bold);y+=size+9;line=word;}else line+=(line?' ':'')+word;}if(line){txt(line,x,y,size,color,bold);y+=size+9;}return y;}
+ const fmt=n=>'₹'+Number(n||0).toFixed(2);
+ rect(0,0,W,canvas.height,'white');rect(0,0,W,18,blue);rect(0,18,W,9,'#18a8df');
+ if(logo){c.drawImage(logo,40,45,120,120);}else{txt('MB',55,123,57,blue,true);}
+ y=wrap(localStorage.getItem('biki_business_name')||'BIKI ONLINE SERVICE CENTER',180,85,740,43,navy,true);txt('অনলাইন পরিষেবা ও ব্যাংক CSP কেন্দ্র',180,y+15,25,blue,true);y=Math.max(y+47,185);
+ const services=['Train','Flight','Bus','PAN','Aadhaar','Bank CSP','Print'];services.forEach((t,i)=>{let x=P+i*126;rect(x,y,118,64,'#e5f4ff');txt(t,x+59,y+39,20,blue,true,'center');});y+=85;
+ rect(P,y,W-2*P,65,blue);txt('CUSTOMER RECEIPT',W/2,y+43,34,'white',true,'center');y+=101;
+ y=wrap('Invoice: '+(s.receiptNo||''),P,y,880,26,navy,true);y=wrap('Date: '+(s.date||'')+' '+(s.time||''),P,y,880);y=wrap('Customer: '+(s.customer||'Cash Customer'),P,y,880);if(s.phone)y=wrap('Mobile: '+s.phone,P,y,880);y+=18;
+ rect(P,y,880,50,blue);txt('Service / Product',P+12,y+33,23,'white',true);txt('Qty',590,y+33,22,'white',true,'right');txt('Rate',730,y+33,22,'white',true,'right');txt('Amount',905,y+33,22,'white',true,'right');y+=50;
+ for(const [i,item] of items.entries()){let start=y;let end=wrap((i+1)+'. '+item.name,P+12,y+33,480,25,navy,true);txt(item.qty,590,y+33,24,navy,false,'right');txt(fmt(item.price),730,y+33,23,navy,false,'right');txt(fmt(Number(item.qty)*Number(item.price)),905,y+33,23,navy,true,'right');y=Math.max(start+65,end+12);rect(P,y,880,1,'#b9cce3');y+=5;}
+ y+=28;const subtotal=items.reduce((n,i)=>n+Number(i.qty)*Number(i.price),0);const total=Number(s.total)||0;const due=s.dueAmount==null?(s.mode==='Due'?total:0):Number(s.dueAmount);const paid=s.paidAmount==null?Math.max(0,total-due):Number(s.paidAmount);
+ for(const [label,val] of [['Sub Total',subtotal],['Discount',s.discount==null?Math.max(0,subtotal-total):Number(s.discount)]]){txt(label,P,y,26);txt(fmt(val),920,y,27,navy,true,'right');y+=42;}
+ rect(P,y,880,64,blue);txt('Total Amount',P+15,y+42,31,'white',true);txt(fmt(total),905,y+42,32,'white',true,'right');y+=97;
+ txt('Paid: '+fmt(paid),P,y,27,'#08783e',true);txt('Due: '+fmt(due),920,y,27,due>0?'#b45309':'#08783e',true,'right');y+=43;txt('Payment: '+(s.mode||'')+' • '+(due>0?'DUE':'PAID'),P,y,26,navy,true);y+=46;
+ y=wrap('আপনার বিশ্বাস ও সহযোগিতার জন্য ধন্যবাদ',P,y,880,30,blue,true);y+=12;
+ if(qr){c.drawImage(qr,P,y,140,140);txt('Scan & Pay via UPI',200,y+40,25,blue,true);y+=160;}
+ y=wrap(localStorage.getItem('biki_business_address')||'Galimpur Bazar, Chanchal, Malda, West Bengal',P,y+15,880,25);y=wrap([localStorage.getItem('biki_business_mobile'),localStorage.getItem('biki_business_mobile2')].filter(Boolean).join(' / ')||'9614215040 / 9733043212',P,y,880,26,blue,true);rect(0,y+10,W,20,blue);
+ const out=document.createElement('canvas');out.width=W;out.height=y+30;out.getContext('2d').drawImage(canvas,0,0);const blob=await new Promise(r=>out.toBlob(r,'image/png'));if(!blob)throw Error('Image generation failed');
+ const url=URL.createObjectURL(blob);const filename=String(s.receiptNo||'receipt').replace(/[^\w-]/g,'_')+'.png';
+ const dialog=document.createElement('dialog');dialog.style.cssText='max-width:min(94vw,650px);max-height:94vh;border:1px solid #bfd2ec;border-radius:16px;padding:18px;color:#08265b';dialog.innerHTML='<h3>WhatsApp Receipt Image</h3><p>Copy & Open WhatsApp → Ctrl+V → Send. অথবা PNG Download করুন।</p><img style="display:block;max-width:100%;max-height:57vh;margin:auto;object-fit:contain"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button>Copy & Open WhatsApp</button><button>Download PNG</button><button>Close</button></div>';dialog.querySelector('img').src=url;const buttons=dialog.querySelectorAll('button');buttons[0].onclick=async()=>{try{await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);let phone=String(s.phone||'').replace(/\D/g,'');if(phone.length===10)phone='91'+phone;if(!/^91[6-9]\d{9}$/.test(phone))phone='';window.location.href='whatsapp://send'+(phone?'?phone='+phone:'');}catch(e){alert('Image copy failed. Download PNG and attach in WhatsApp manually.');}};buttons[1].onclick=()=>{const a=document.createElement('a');a.href=url;a.download=filename;a.click();};buttons[2].onclick=()=>dialog.close();dialog.addEventListener('close',()=>{URL.revokeObjectURL(url);dialog.remove();});document.body.append(dialog);dialog.showModal();
+ }catch(e){console.error(e);alert('Receipt image তৈরি হয়নি। আবার চেষ্টা করুন।');}
 }
 function renderSalesHistory(){
  const {sales,invalid}=historySales();
