@@ -458,7 +458,7 @@ function bikiFilterPublicServices(){
 <div class="field"><label>Discount on Bill (₹)</label><input id="saleDiscount" type="number" min="0" step=".01" value="0"></div>
 </div></div>
 <div class="bill-actions"><button type="button" class="primary" id="saveBillBtn">✓ Save Complete Bill</button><button type="button" class="outline" id="clearBillBtn">Clear / Cancel</button></div>
-<p class="bill-muted" id="billStatus">Bill Save করার পরে Sales History থেকে Print করুন।</p><div style="margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="bikiBillWhatsAppAuto" checked style="width:auto"> Bill Save হলে WhatsApp খুলুন (Single Tab)</label><a id="bikiBillWhatsAppLink" hidden target="_blank" rel="noopener noreferrer" style="background:#128c7e;color:white;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:600">📲 Send Bill via WhatsApp</a></div><p class="bill-muted">WhatsApp-এ মেসেজ প্রস্তুত হবে; Send নিজে চাপুন। গ্রাহকের সম্মতি থাকলে পাঠান।</p></div>
+<p class="bill-muted" id="billStatus">Bill Save করার পরে Sales History থেকে Print করুন।</p><div style="margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><a id="bikiBillWhatsAppLink" hidden target="_blank" rel="noopener noreferrer" style="background:#128c7e;color:white;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:600">📲 Send Bill via WhatsApp</a></div><p class="bill-muted">Bill Save করলে নতুন Tab খুলবে না। নিচের সবুজ WhatsApp বাটনে ক্লিক করে মেসেজ পাঠান। গ্রাহকের সম্মতি থাকলে পাঠান।</p></div>
 <aside class="billing-preview"><h3>Live Invoice Preview</h3><div id="billPreviewLogoWrap" style="display:none;text-align:center;margin:10px 0 8px"><img id="billPreviewLogo" alt="Business Logo" style="width:78px;height:78px;max-width:100%;object-fit:contain;border-radius:12px;background:white;padding:4px;border:1px solid #e8edf4"></div><div class="bill-muted" id="billPreviewShop">BIKI ONLINE SERVICE CENTER</div><div class="bill-muted" id="billPreviewContact"></div><hr><div id="billPreviewCustomer"></div><p class="bill-muted" id="billPreviewDate"></p><table><thead><tr><th>ITEM</th><th>QTY</th><th class="right">AMOUNT</th></tr></thead><tbody id="billPreviewRows"></tbody></table><hr><div id="billPreviewSummary"></div><div id="billPreviewQr" style="display:none;text-align:center;margin:14px auto"><img id="billPreviewQrImage" alt="UPI payment QR" style="max-width:145px;max-height:190px;object-fit:contain"><div style="font-size:12px;font-weight:700">Scan & Pay via UPI</div></div><p class="bill-note">Preview only — Print হবে শুধু আপনার Print বাটনে ক্লিক করলে।</p></aside></div>
 <div class="panel" style="margin-top:18px"><h3>Sales History</h3><p class="sub">Receipt PDF চাপলে Print Dialog ছাড়াই PDF সরাসরি Download হবে।<br>Daily / Monthly / Yearly / Date to Date অনুযায়ী Sale খুঁজুন। Delete করতে Admin Login Password লাগবে।</p>
 <div class="formgrid" style="margin:14px 0;align-items:end">
@@ -901,7 +901,7 @@ $('saveBillBtn').onclick=()=>{
   const url=mobile?'https://api.whatsapp.com/send?'+query:'https://web.whatsapp.com/send?'+query;
   if(waStatus)waStatus.textContent='📲 Send Bill to +'+phone;
   if(waStatus){waStatus.href=url;waStatus.hidden=false;}
-  if(document.getElementById('bikiBillWhatsAppAuto')?.checked)bikiOpenBillWhatsApp(url);
+  // Manual only: saving never opens WhatsApp; use the green button after saving.
  }
 
 };
