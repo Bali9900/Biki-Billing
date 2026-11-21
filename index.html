@@ -515,14 +515,6 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
 </div>
 <button id="bikiPublicBack" type="button" onclick="bikiPublicShowHome()">⌂ Public Website</button>
 <script>
-function bikiFilterPublicServices(){
-  const q=(document.getElementById('bikiServiceSearch')?.value||'').toLocaleLowerCase().trim();
-  const cards=document.querySelectorAll('#bikiServiceGrid .v-service');
-  let count=0;
-  cards.forEach(card=>{const show=card.textContent.toLocaleLowerCase().includes(q);card.style.display=show?'':'none';if(show)count++});
-  const label=document.getElementById('bikiServiceCount');if(label)label.textContent=count+'টি পরিষেবা';
-}
-
 (function(){
   'use strict';
   const home=document.getElementById('bikiPublicHome');
@@ -1156,35 +1148,12 @@ function printReceipt(sid, savePdf=false){
  <div class="center">${shopLogo?`<img src="${shopLogo}" style="max-width:85px;max-height:70px;object-fit:contain"><br>`:''}<h2>${esc(shop)}</h2><div class="muted">${esc(shopAddress)}<br>${esc(shopMobile)}</div><div class="muted">SALES RECEIPT</div></div><div class="line"></div>
  <p><b>Receipt No:</b> ${esc(s.receiptNo)}<br><b>Date:</b> ${esc(s.date)}<br><b>Selling Time:</b> ${esc(s.time||'Not recorded')}<br><b>Customer:</b> ${esc(s.customer)}<br><b>Mobile:</b> ${esc(s.phone||'—')}</p>
  <table><thead><tr><th>Product / Service</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table>
- <p style="text-align:right">Subtotal: ${money(subtotal)}<br>Discount: ${money(s.discount)}</p><div class="total">Total: ${money(s.total)}</div><p><b>Payment:</b> ${esc(s.mode)}</p>${qrHtml}<div class="line"></div><div class="foot">${esc(v2.footer)}<br>${v2.signature?'<div style="margin-top:38px;text-align:right;border-top:1px solid #999;padding-top:6px">Authorized Signature</div>':''}${esc(shop)}</div></div><script>window.onload=()=>{window.focus();window.print();};<\/script>
+ <p style="text-align:right">Subtotal: ${money(subtotal)}<br>Discount: ${money(s.discount)}</p><div class="total">Total: ${money(s.total)}</div><p><b>Payment:</b> ${esc(s.mode)}</p>${qrHtml}<div class="line"></div><div class="foot">${esc(v2.footer)}<br>${v2.signature?'<div style="margin-top:38px;text-align:right;border-top:1px solid #999;padding-top:6px">Authorized Signature</div>':''}${esc(shop)}</div></div>
 
-<script id="biki-public-enquiry-script">
-(function(){
-'use strict';
-// Replace this URL after deploying the accompanying secure Telegram relay.
-const ENQUIRY_ENDPOINT='';
-const form=document.getElementById('bikiPublicEnquiryForm');
-if(!form)return;
-form.addEventListener('submit',async function(event){
- event.preventDefault();
- const status=document.getElementById('bikiEnqStatus');
- const button=document.getElementById('bikiEnqSubmit');
- const data=Object.fromEntries(new FormData(form).entries());
- data.mobile=String(data.mobile||'').trim();
- if(!/^[6-9][0-9]{9}$/.test(data.mobile)){status.textContent='সঠিক 10-digit Mobile Number দিন।';return;}
- if(!ENQUIRY_ENDPOINT){status.textContent='Enquiry service setup pending. অনুগ্রহ করে ফোনে যোগাযোগ করুন।';return;}
- button.disabled=true;status.textContent='Enquiry পাঠানো হচ্ছে...';
- try{
-  const response=await fetch(ENQUIRY_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  if(!response.ok)throw new Error('Send failed');
-  status.textContent='ধন্যবাদ! আপনার Enquiry সফলভাবে পাঠানো হয়েছে।';form.reset();
- }catch(error){status.textContent='Enquiry পাঠানো যায়নি। আবার চেষ্টা করুন অথবা ফোনে যোগাযোগ করুন।';}
- finally{button.disabled=false;}
-});
-})();
-</script>
+
 </body></html>`);
  w.document.close();
+ w.addEventListener('load',()=>{w.focus();w.print();},{once:true});
  if(savePdf) alert('Receipt PDF Save করতে Print Window-তে Destination: Save as PDF নির্বাচন করুন, তারপর Save চাপুন।');
 }
 $('billServiceOptions').innerHTML=(data.services||[]).map(x=>`<option value="${esc(x)}"></option>`).join('');
@@ -1267,7 +1236,7 @@ function updateHistoryFields(){
  renderSalesHistory();
 }
 function historyCsv(){const {sales,invalid}=historySales();if(invalid){alert('সঠিক Date Range দিন');return;}const rows=[['Date','Time','Invoice No','Customer','Phone','Items','Qty','Discount','Total','Payment'],...sales.map(s=>[s.date,s.time||'',s.receiptNo||'',s.customer||'',s.phone||'',saleItems(s).map(i=>i.name+' x'+i.qty).join(' | '),saleItems(s).reduce((n,i)=>n+Number(i.qty||0),0),s.discount||0,s.total||0,s.mode||''])];download('biki-sales-history-'+$('historyFilterType').value+'.csv',reportCsv(rows),'text/csv;charset=utf-8')}
-function historyPrint(){const {sales,invalid}=historySales();if(invalid){alert('সঠিক Date Range দিন');return;}const w=window.open('','_blank');if(!w){alert('Browser-এ Print Popups Allow করুন');return;}const rows=sales.map(s=>`<tr><td>${esc(s.date)} ${esc(s.time||'')}</td><td>${esc(s.receiptNo)}</td><td>${esc(s.customer||'')}</td><td>${saleItems(s).map(i=>esc(i.name)).join(', ')}</td><td>${money(s.total)}</td><td>${esc(s.mode)}</td></tr>`).join('');w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Sales History</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ccc;padding:8px;text-align:left}</style></head><body><h2>BIKI ONLINE SERVICE CENTER — Sales History</h2><p>Bills: ${sales.length} | Total: ${money(sales.reduce((n,s)=>n+Number(s.total||0),0))}</p><table><thead><tr><th>Date / Time</th><th>Invoice</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th></tr></thead><tbody>${rows}</tbody></table><script>window.onload=()=>window.print();<\/script></body></html>`);w.document.close()}
+function historyPrint(){const {sales,invalid}=historySales();if(invalid){alert('সঠিক Date Range দিন');return;}const w=window.open('','_blank');if(!w){alert('Browser-এ Print Popups Allow করুন');return;}const rows=sales.map(s=>`<tr><td>${esc(s.date)} ${esc(s.time||'')}</td><td>${esc(s.receiptNo)}</td><td>${esc(s.customer||'')}</td><td>${saleItems(s).map(i=>esc(i.name)).join(', ')}</td><td>${money(s.total)}</td><td>${esc(s.mode)}</td></tr>`).join('');w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Sales History</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ccc;padding:8px;text-align:left}</style></head><body><h2>BIKI ONLINE SERVICE CENTER — Sales History</h2><p>Bills: ${sales.length} | Total: ${money(sales.reduce((n,s)=>n+Number(s.total||0),0))}</p><table><thead><tr><th>Date / Time</th><th>Invoice</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);w.document.close();w.addEventListener('load',()=>{w.focus();w.print();},{once:true})}
 const historyToday=new Date();$('historyDay').value=localSaleDate(historyToday);$('historyMonth').value=localSaleDate(historyToday).slice(0,7);$('historyYear').value=historyToday.getFullYear();$('historyFrom').value=localSaleDate(historyToday);$('historyTo').value=localSaleDate(historyToday);
 $('historyFilterType').onchange=updateHistoryFields;['historyDay','historyMonth','historyYear','historyFrom','historyTo','historySearch'].forEach(x=>$(x).addEventListener('input',renderSalesHistory));$('historyReset').onclick=()=>{$('historyFilterType').value='all';$('historySearch').value='';updateHistoryFields()};$('historyCsv').onclick=historyCsv;$('historyPrint').onclick=historyPrint;
 function reportDate(s){const d=String(s||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(d)?d:''}
@@ -1299,7 +1268,7 @@ function renderSalesReport(){
 function updateReportFields(){const t=$('salesReportType').value;[['reportDayField','daily'],['reportMonthField','monthly'],['reportYearField','yearly'],['reportFromField','range'],['reportToField','range']].forEach(([id,v])=>$(id).style.display=t===v?'':'none');renderSalesReport()}
 function reportCsv(rows){return '\ufeff'+rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n')}
 function exportSalesReport(){const {b,sales}=filteredReportData();if(b.invalid){alert('সঠিক From Date এবং To Date দিন');return;}const rows=[['Date','Time','Invoice No','Customer','Phone','Items','Quantity','Subtotal','Discount','Total','Payment'],...sales.map(s=>[s.date,s.time||'',s.receiptNo||'',s.customer||'',s.phone||'',saleItems(s).map(i=>`${i.name} x${i.qty}`).join(' | '),saleItems(s).reduce((n,i)=>n+Number(i.qty||0),0),s.subtotal??'',s.discount||0,s.total||0,s.mode||''])];download('biki-sales-report-'+$('salesReportType').value+'.csv',reportCsv(rows),'text/csv;charset=utf-8')}
-function printSalesReport(){const {b,sales}=filteredReportData();if(b.invalid){alert('সঠিক Date Range দিন');return;}const w=window.open('','_blank');if(!w){alert('Print Popup Blocked: Browser থেকে Popups Allow করুন');return;}const sum=sales.reduce((n,s)=>n+Number(s.total||0),0);w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>BIKI Sales Report</title><style>body{font-family:Arial,sans-serif;padding:22px}table{border-collapse:collapse;width:100%;font-size:12px}td,th{border:1px solid #ccc;padding:7px;text-align:left}h1{font-size:20px}small{color:#555}</style></head><body><h1>${esc(localStorage.getItem('biki_business_name')||'BIKI ONLINE SERVICE CENTER')}</h1><h2>Sales Report</h2><p>${esc(b.label)} | Bills: ${sales.length} | Total: ${money(sum)}</p><table><thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Items</th><th>Qty</th><th>Total</th><th>Payment</th></tr></thead><tbody>${sales.map(s=>`<tr><td>${esc(s.date||'')} ${esc(s.time||'')}</td><td>${esc(s.receiptNo||'')}</td><td>${esc(s.customer||'')}</td><td>${saleItems(s).map(i=>esc(i.name)).join(', ')}</td><td>${saleItems(s).reduce((n,i)=>n+Number(i.qty||0),0)}</td><td>${money(s.total)}</td><td>${esc(s.mode||'')}</td></tr>`).join('')}</tbody></table><script>window.onload=()=>window.print();<\/script></body></html>`);w.document.close()}
+function printSalesReport(){const {b,sales}=filteredReportData();if(b.invalid){alert('সঠিক Date Range দিন');return;}const w=window.open('','_blank');if(!w){alert('Print Popup Blocked: Browser থেকে Popups Allow করুন');return;}const sum=sales.reduce((n,s)=>n+Number(s.total||0),0);w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>BIKI Sales Report</title><style>body{font-family:Arial,sans-serif;padding:22px}table{border-collapse:collapse;width:100%;font-size:12px}td,th{border:1px solid #ccc;padding:7px;text-align:left}h1{font-size:20px}small{color:#555}</style></head><body><h1>${esc(localStorage.getItem('biki_business_name')||'BIKI ONLINE SERVICE CENTER')}</h1><h2>Sales Report</h2><p>${esc(b.label)} | Bills: ${sales.length} | Total: ${money(sum)}</p><table><thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Items</th><th>Qty</th><th>Total</th><th>Payment</th></tr></thead><tbody>${sales.map(s=>`<tr><td>${esc(s.date||'')} ${esc(s.time||'')}</td><td>${esc(s.receiptNo||'')}</td><td>${esc(s.customer||'')}</td><td>${saleItems(s).map(i=>esc(i.name)).join(', ')}</td><td>${saleItems(s).reduce((n,i)=>n+Number(i.qty||0),0)}</td><td>${money(s.total)}</td><td>${esc(s.mode||'')}</td></tr>`).join('')}</tbody></table></body></html>`);w.document.close();w.addEventListener('load',()=>{w.focus();w.print();},{once:true})}
 const reportNow=new Date();$('salesReportDay').value=localSaleDate(reportNow);$('salesReportMonth').value=localSaleDate(reportNow).slice(0,7);$('salesReportYear').value=reportNow.getFullYear();$('salesReportFrom').value=localSaleDate(reportNow);$('salesReportTo').value=localSaleDate(reportNow);
 $('salesReportType').onchange=updateReportFields;['salesReportDay','salesReportMonth','salesReportYear','salesReportFrom','salesReportTo'].forEach(x=>$(x).onchange=renderSalesReport);
 $('applySalesReport').onclick=renderSalesReport;$('exportSalesReport').onclick=exportSalesReport;$('printSalesReport').onclick=printSalesReport;updateReportFields();
@@ -1822,6 +1791,31 @@ if(!setup()){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',decorate);else decorate();
   var observer=new MutationObserver(decorate);
   observer.observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+<script id="biki-public-enquiry-script">
+(function(){
+'use strict';
+// Replace this URL after deploying the accompanying secure Telegram relay.
+const ENQUIRY_ENDPOINT='';
+const form=document.getElementById('bikiPublicEnquiryForm');
+if(!form)return;
+form.addEventListener('submit',async function(event){
+ event.preventDefault();
+ const status=document.getElementById('bikiEnqStatus');
+ const button=document.getElementById('bikiEnqSubmit');
+ const data=Object.fromEntries(new FormData(form).entries());
+ data.mobile=String(data.mobile||'').trim();
+ if(!/^[6-9][0-9]{9}$/.test(data.mobile)){status.textContent='সঠিক 10-digit Mobile Number দিন।';return;}
+ if(!ENQUIRY_ENDPOINT){status.textContent='Enquiry service setup pending. অনুগ্রহ করে ফোনে যোগাযোগ করুন।';return;}
+ button.disabled=true;status.textContent='Enquiry পাঠানো হচ্ছে...';
+ try{
+  const response=await fetch(ENQUIRY_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(!response.ok)throw new Error('Send failed');
+  status.textContent='ধন্যবাদ! আপনার Enquiry সফলভাবে পাঠানো হয়েছে।';form.reset();
+ }catch(error){status.textContent='Enquiry পাঠানো যায়নি। আবার চেষ্টা করুন অথবা ফোনে যোগাযোগ করুন।';}
+ finally{button.disabled=false;}
+});
 })();
 </script>
 </body></html>
