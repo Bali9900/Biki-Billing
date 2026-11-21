@@ -1082,11 +1082,37 @@ function historySales(){
  }).slice().sort((a,b)=>saleHistoryTimestamp(b)-saleHistoryTimestamp(a)||String(b.receiptNo||'').localeCompare(String(a.receiptNo||''),undefined,{numeric:true}));
  return {sales,invalid};
 }
+function sendSalesHistoryWhatsApp(saleId){
+ const s=(data.sales||[]).find(x=>String(x.id)===String(saleId));
+ if(!s){alert('এই Bill পাওয়া যায়নি। Sales History Refresh করুন।');return;}
+ let phone=String(s.phone||'').replace(/\D/g,'');
+ if(phone.length===12&&phone.startsWith('91'))phone=phone.slice(2);
+ // No saved number: open WhatsApp Beta with the prepared receipt message,
+ // allowing the user to choose a recipient in the desktop app.
+ if(!/^[6-9]\d{9}$/.test(phone))phone='';
+ const items=saleItems(s).map(i=>'• '+String(i.name||'Item')+' × '+Number(i.qty||1)).join('\n');
+ const paid=Number(s.paidAmount);
+ const due=Number(s.dueAmount);
+ const lines=[
+   'BIKI ONLINE SERVICE CENTER',
+   'Bill Receipt / Invoice Summary',
+   'Receipt No: '+String(s.receiptNo||''),
+   'Date: '+String(s.date||'')+' '+String(s.time||''),
+   'Customer: '+String(s.customer||'Cash Customer'),
+   '', 'Items:',items,'',
+   'Total: '+money(Number(s.total)||0),
+   'Payment Mode: '+String(s.mode||'')
+ ];
+ if(Number.isFinite(paid))lines.push('Paid: '+money(paid));
+ if(Number.isFinite(due)&&due>0)lines.push('Due: '+money(due));
+ lines.push('','Thank you for choosing BIKI ONLINE SERVICE CENTER.');
+ bikiOpenBillWhatsApp(bikiWhatsAppDesktopUrl(phone?('91'+phone):'',lines.join('\n')));
+}
 function renderSalesHistory(){
  const {sales,invalid}=historySales();
  const sum=sales.reduce((n,s)=>n+Number(s.total||0),0);
  $('historySummary').textContent=invalid?'⚠ From Date ও To Date ঠিক করুন':`${sales.length} Bills • Total Sales: ${money(sum)}`;
- $('salesRows').innerHTML=sales.map(s=>{let items=saleItems(s);return `<tr><td>${esc(s.receiptNo)}</td><td>${esc(s.date)}<small>${esc(s.time||'')}</small></td><td>${esc(s.customer||'Cash Customer')}</td><td>${items.map(i=>esc(i.name)).join('<br>')}</td><td>${items.reduce((n,i)=>n+Number(i.qty||0),0)}</td><td>${money(s.total)}</td><td>${esc(s.mode)}</td><td class="actions"><button class="outline" onclick="editSale('${s.id}')">Modify</button><button class="outline" onclick="printReceipt('${s.id}')">Print</button><button class="outline" onclick="downloadReceiptPDF('${s.id}')" title="Download PDF directly">⬇ Receipt PDF</button><button class="danger" onclick="deleteSale('${s.id}')">Delete</button></td></tr>`}).join('')||'<tr><td colspan="8" class="empty">এই Filter-এ কোনো Sale নেই</td></tr>';
+ $('salesRows').innerHTML=sales.map(s=>{let items=saleItems(s);return `<tr><td>${esc(s.receiptNo)}</td><td>${esc(s.date)}<small>${esc(s.time||'')}</small></td><td>${esc(s.customer||'Cash Customer')}</td><td>${items.map(i=>esc(i.name)).join('<br>')}</td><td>${items.reduce((n,i)=>n+Number(i.qty||0),0)}</td><td>${money(s.total)}</td><td>${esc(s.mode)}</td><td class="actions"><button class="outline" onclick="editSale('${s.id}')">Modify</button><button class="outline" onclick="printReceipt('${s.id}')">Print</button><button class="outline" onclick="downloadReceiptPDF('${s.id}')" title="Download PDF directly">⬇ Receipt PDF</button><button class="danger" onclick="deleteSale('${s.id}')">Delete</button><button class="outline" style="background:#078443;color:#fff;border-color:#078443;white-space:nowrap" onclick="sendSalesHistoryWhatsApp('${s.id}')" title="Send receipt summary using WhatsApp Beta Desktop">📲 Send WhatsApp</button></td></tr>`}).join('')||'<tr><td colspan="8" class="empty">এই Filter-এ কোনো Sale নেই</td></tr>';
 }
 function updateHistoryFields(){
  const t=$('historyFilterType').value;
