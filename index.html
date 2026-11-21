@@ -489,7 +489,14 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
 #bikiPublicHome .biki-enquiry-premium .biki-enquiry-contact .biki-local-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
 #bikiPublicHome .biki-enquiry-premium .biki-enquiry-form-side{padding:25px 27px}
 @media(max-width:850px){#bikiPublicHome .biki-enquiry-premium .biki-enquiry-layout{grid-template-columns:1fr}#bikiPublicHome .biki-enquiry-premium .biki-enquiry-contact .biki-local-details{padding:20px}}
-</style></head>
+</style>
+<style id="biki-public-topbar-readable-v1">
+#bikiPublicHome .v-topline{font-size:16px!important;font-weight:600!important;letter-spacing:0!important;line-height:1.45!important;color:#fff!important}
+#bikiPublicHome .v-topline .v-wrap{font-size:16px!important;align-items:center!important;padding-top:13px!important;padding-bottom:13px!important;gap:12px 22px!important}
+#bikiPublicHome .v-topline .v-wrap span{font-size:inherit!important;color:#fff!important}
+@media(max-width:680px){#bikiPublicHome .v-topline .v-wrap{font-size:15px!important;flex-wrap:wrap!important;padding-top:11px!important;padding-bottom:11px!important}}
+</style>
+</head>
 <body>
 <!-- Completely redesigned public-facing site; existing private billing logic below is retained. -->
 <div id="bikiPublicHome" role="region" aria-label="BIKI Online Service Center public website">
