@@ -334,7 +334,18 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
 #bikiCloudGate .biki-v3-cloud-card .biki-v3-cloud-logo{width:82px;height:82px;margin:0 auto 17px;border-radius:19px;background:#fff;box-shadow:0 0 0 3px #d9b76b;display:grid;place-items:center;overflow:hidden;color:#0756c9;font-size:29px;font-weight:900}
 #bikiCloudGate .biki-v3-cloud-card .biki-v3-cloud-logo img{width:100%;height:100%;object-fit:contain}
 #bikiCloudGate .biki-v3-cloud-card .biki-v3-cloud-tag{text-align:center;color:#e1c27c!important;letter-spacing:1.4px;font-size:11px;margin:0 0 18px}
-</style></head>
+</style>
+<style id="biki-v3-travel-background-restore">
+/* Restore original travel background stored in the Biki-Billing GitHub repository. */
+#bikiCloudGate{
+ background:linear-gradient(110deg,rgba(4,17,37,.76),rgba(5,27,59,.53)),url("./login-travel-background.jpg") center center / cover no-repeat fixed !important;
+}
+#loginOverlay.login-overlay{
+ background:linear-gradient(110deg,rgba(4,17,37,.76),rgba(5,27,59,.53)),url("./login-travel-background.jpg") center center / cover no-repeat fixed !important;
+}
+@media(max-width:700px){#bikiCloudGate,#loginOverlay.login-overlay{background-attachment:scroll!important}}
+</style>
+</head>
 <body>
 <!-- Completely redesigned public-facing site; existing private billing logic below is retained. -->
 <div id="bikiPublicHome" role="region" aria-label="BIKI Online Service Center public website">
