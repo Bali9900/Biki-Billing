@@ -445,7 +445,51 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
 #bikiPublicHome .biki-enquiry .biki-enquiry-privacy{font-size:12px;color:#60758b;margin:13px 0 0}
 @media(max-width:650px){#bikiPublicHome .biki-enquiry-grid{grid-template-columns:1fr}#bikiPublicHome .biki-enquiry form{padding:16px}}
 </style>
-</head>
+<style>
+
+/* BIKI compact two-column enquiry layout — scoped to public enquiry only */
+#bikiPublicHome .biki-enquiry-premium{padding:34px 0 42px;background:linear-gradient(145deg,#eff7ff,#f9fcff)}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-layout{display:grid;grid-template-columns:minmax(0,0.92fr) minmax(0,1.12fr);gap:16px;align-items:stretch;max-width:1320px;margin:auto}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand{min-width:0;overflow:hidden;border-radius:24px;background:#fff;border:1px solid #c9e1fb;box-shadow:0 12px 32px #0b39751a;display:flex;flex-direction:column}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-hero{background:linear-gradient(115deg,#092d5b,#005dbb 85%);color:#fff;text-align:center;padding:30px 12px 25px;border-bottom:7px solid #ffcb2e}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-name{font-size:clamp(68px,8vw,115px);line-height:1;font-weight:950;letter-spacing:3px;color:white}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-sub{font-size:clamp(12px,1.35vw,18px);letter-spacing:3px;font-weight:850;color:white;margin-top:10px}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-content{padding:26px 25px 20px;flex:1}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-eyebrow{color:#0762d2;font-size:12px;font-weight:850;letter-spacing:1px}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-content h3{font-size:clamp(20px,2vw,27px);line-height:1.25;margin:17px 0 12px;color:#092b60}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-content p{font-size:15px;line-height:1.75;color:#264769;margin:0 0 20px}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-services{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-services span{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;text-align:center;background:#eef7ff;border:1px solid #c7e1fa;border-radius:15px;padding:12px 4px;font-size:19px;color:#092d63}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-services b{font-size:12px}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-services small{font-size:10px;color:#426b94}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-foot{text-align:center;background:#08346f;color:#fff;padding:13px;font-weight:800;font-size:14px}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-form-side{min-width:0;background:#fff;border:1px solid #c7dcf9;border-radius:24px;padding:25px 26px;box-shadow:0 12px 32px #0b397512}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-heading{display:flex;align-items:center;gap:13px;margin-bottom:22px}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-heading-icon{display:grid;place-items:center;width:58px;height:58px;flex:none;border-radius:14px;background:linear-gradient(135deg,#0783f5,#003db5);color:#fff;font-size:32px}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-heading h2{font-size:clamp(23px,2.8vw,37px);line-height:1.15;margin:0;color:#092e6b}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-heading h2 em{font-style:normal;color:#0864e9}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-heading p{font-size:14px;margin:6px 0 0;color:#456d95}
+#bikiPublicHome .biki-enquiry-premium form{max-width:none;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-grid{gap:12px}
+#bikiPublicHome .biki-enquiry-premium label{margin-bottom:5px}
+#bikiPublicHome .biki-enquiry-premium input,#bikiPublicHome .biki-enquiry-premium select,#bikiPublicHome .biki-enquiry-premium textarea{padding:10px 12px;background:#f9fcff}
+#bikiPublicHome .biki-enquiry-premium textarea{min-height:82px;resize:vertical}
+#bikiPublicHome .biki-enquiry-premium button{display:block;margin:16px auto 0;min-width:230px;cursor:pointer}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-privacy{font-size:11px;line-height:1.5}
+@media(max-width:850px){#bikiPublicHome .biki-enquiry-premium .biki-enquiry-layout{grid-template-columns:1fr}#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-hero{padding:24px 12px}#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-name{font-size:76px}}
+@media(max-width:480px){#bikiPublicHome .biki-enquiry-premium .biki-enquiry-form-side{padding:18px 15px}#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-content{padding:18px 14px}#bikiPublicHome .biki-enquiry-premium .biki-enquiry-heading-icon{width:45px;height:45px;font-size:25px}#bikiPublicHome .biki-enquiry-premium .biki-enquiry-brand-services b{font-size:11px}}
+
+</style>
+<style id="biki-enquiry-contact-final-fix">
+#bikiPublicHome .biki-enquiry-premium{padding:38px 0 45px;background:linear-gradient(145deg,#eef6ff,#f8fbff)}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-layout{grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr);gap:18px;align-items:stretch}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-contact{min-width:0;display:flex}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-contact .biki-local-details{width:100%;padding:28px 30px;border:1px solid #d4e4f6;border-radius:23px;box-shadow:0 12px 30px #123e7512;justify-content:center}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-contact .biki-detail{padding:22px 0}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-contact .biki-local-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+#bikiPublicHome .biki-enquiry-premium .biki-enquiry-form-side{padding:25px 27px}
+@media(max-width:850px){#bikiPublicHome .biki-enquiry-premium .biki-enquiry-layout{grid-template-columns:1fr}#bikiPublicHome .biki-enquiry-premium .biki-enquiry-contact .biki-local-details{padding:20px}}
+</style></head>
 <body>
 <!-- Completely redesigned public-facing site; existing private billing logic below is retained. -->
 <div id="bikiPublicHome" role="region" aria-label="BIKI Online Service Center public website">
@@ -486,21 +530,15 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
 <a href="#bikiPublicContact" class="biki-photo-card"><img loading="lazy" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MDAiIGhlaWdodD0iNTQwIiB2aWV3Qm94PSIwIDAgOTAwIDU0MCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJza3kiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iI2Q4ZjFmZiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdiYjZlNSIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJmcm9udCIgeDI9IjAiIHkyPSIxIj48c3RvcCBzdG9wLWNvbG9yPSIjZmZmZmZmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZTRmMmZmIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjkwMCIgaGVpZ2h0PSI1NDAiIGZpbGw9InVybCgjc2t5KSIvPjxjaXJjbGUgY3g9Ijc3MCIgY3k9IjkwIiByPSIxMjUiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9Ii4zNSIvPjxjaXJjbGUgY3g9IjEzNSIgY3k9IjQyMCIgcj0iMTU1IiBmaWxsPSIjZmZmZmZmIiBvcGFjaXR5PSIuMjIiLz48cGF0aCBkPSJNMCA0NDhRNDAwIDM5MCA5MDAgNDUwVjU0MEgwIiBmaWxsPSIjYjdkOWVmIi8+PHJlY3QgeD0iMTU1IiB5PSIxODUiIHdpZHRoPSI1OTAiIGhlaWdodD0iMjY1IiByeD0iMTciIGZpbGw9InVybCgjZnJvbnQpIiBzdHJva2U9IiM0MDdlYjgiIHN0cm9rZS13aWR0aD0iOCIvPjxwYXRoIGQ9Ik0xMTUgMTg5IDQ1MCA1MyA3ODUgMTg5WiIgZmlsbD0iIzEyNTRhNCIvPjxwYXRoIGQ9Ik0xNTUgMTg5IDQ1MCA3OCA3NDUgMTg5IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NWJiZmYiIHN0cm9rZS13aWR0aD0iMTIiLz48cmVjdCB4PSI0MDUiIHk9IjI4NiIgd2lkdGg9IjkwIiBoZWlnaHQ9IjE2NCIgcng9IjYiIGZpbGw9IiMxZDVjYWEiLz48cmVjdCB4PSI0MjIiIHk9IjMwNyIgd2lkdGg9IjU2IiBoZWlnaHQ9IjYwIiByeD0iMyIgZmlsbD0iI2I5ZTlmZiIvPjxyZWN0IHg9IjIzMCIgeT0iMjgwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjkzIiByeD0iNyIgZmlsbD0iI2JiZWJmZiIgc3Ryb2tlPSIjMmE3YWI3IiBzdHJva2Utd2lkdGg9IjgiLz48cmVjdCB4PSI1NTAiIHk9IjI4MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI5MyIgcng9IjciIGZpbGw9IiNiYmViZmYiIHN0cm9rZT0iIzJhN2FiNyIgc3Ryb2tlLXdpZHRoPSI4Ii8+PHJlY3QgeD0iMzEwIiB5PSIyMDciIHdpZHRoPSIyODAiIGhlaWdodD0iNTEiIHJ4PSIyNCIgZmlsbD0iIzBiNDU5NSIvPjx0ZXh0IHg9IjQ1MCIgeT0iMjQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjMwIj5CQU5LSU5HIENTUDwvdGV4dD48cmVjdCB4PSIxMjUiIHk9IjQ0MiIgd2lkdGg9IjY1MCIgaGVpZ2h0PSIyMyIgcng9IjEwIiBmaWxsPSIjMTE0Zjk2Ii8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNzEwIDI4MCkiPjxjaXJjbGUgcj0iNjciIGZpbGw9IndoaXRlIi8+PGNpcmNsZSByPSI1NyIgZmlsbD0iIzBiNWRjMyIvPjxwYXRoIGQ9Ik0wLTM4VjM3TS0zOCAwSDM4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L2c+PHRleHQgeD0iNDUwIiB5PSI1MTAiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI1IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzExNGY5NiI+TE9DQUwgQkFOS0lORyAmYW1wOyBESUdJVEFMIFNFUlZJQ0VTPC90ZXh0Pjwvc3ZnPg==" alt="Custom illustration of a banking CSP and digital service center"><div><small>LOCAL DIGITAL CENTER</small><strong>🏦 ব্যাংকিং ও অনলাইন সেবা</strong><span>গালিমপুর বাজারে যোগাযোগ করুন →</span></div></a>
 </div></div></section><section class="v-strip"><div class="v-wrap"><div class="v-stripitem"><b>🏦</b> Banking CSP</div><div class="v-stripitem"><b>🚆</b> Train Booking</div><div class="v-stripitem"><b>✈️</b> Tour & Travel</div><div class="v-stripitem"><b>🪪</b> Digital Services</div></div></section>
  <section class="biki-reference-services" id="bikiPublicServices"><div class="v-wrap"><h2>আমাদের প্রধান পরিষেবাসমূহ</h2><div class="biki-reference-grid"><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">🏦</span><strong>WBGB CSP</strong><small>(Banking Services)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">🚆</span><strong>Train Ticket</strong><small>(IRCTC)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">✈️</span><strong>Flight Ticket</strong><small>(Domestic & International)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">🚌</span><strong>Bus Ticket</strong><small>(Online Booking)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">💳</span><strong>PAN Card</strong><small>(NSDL / UTIITSL)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">🪪</span><strong>Aadhaar</strong><small>(Update / Correction)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">🗳️</span><strong>Voter Card</strong><small>(New / Correction)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">🌾</span><strong>Ration Card</strong><small>(New / Update)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">🩺</span><strong>Ayushman Bharat</strong><small>(Health Card)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">🔗</span><strong>DBT Link</strong><small>(Aadhaar Seeding + NPCI)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">📱</span><strong>Recharge</strong><small>(Mobile / DTH / Electricity)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">💳</span><strong>PVC Card</strong><small>(ID / Smart Card)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">🖨️</span><strong>Photocopy & Print</strong><small>(Colour & B&W)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">📝</span><strong>Form Fill-up</strong><small>(Online Applications)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">🚗</span><strong>Vehicle Insurance</strong><small>(Two & Four Wheeler)</small></a><a class="biki-reference-card" href="#bikiPublicServices"><span class="biki-reference-icon">▦</span><strong>অন্যান্য অনলাইন সেবা</strong><small>(All Digital Services)</small></a></div></div></section>
- <section class="biki-local" id="bikiPublicAbout"><div class="v-wrap">
- <div class="biki-local-heading"><span>VISIT OUR CENTER</span><h2>আপনার এলাকার পরিচিত ডিজিটাল পরিষেবা কেন্দ্র</h2><p>গালিমপুর ক্লাবের কাছে, গালিমপুর রোডে আমাদের সেন্টারে আসুন।</p></div>
- <div class="biki-local-layout">
- <div class="biki-local-feature">
- <div class="biki-local-mark">BIKI<span>ONLINE SERVICE CENTER</span></div>
- <div class="biki-local-body"><span class="biki-local-label">LOCAL SERVICE CENTER • GALIMPUR</span><h3>BIKI ONLINE SERVICE CENTER</h3><p>ব্যাংকিং CSP সহায়তা, ট্রেন–ফ্লাইট–বাস বুকিং, PAN, অনলাইন ফর্ম, প্রিন্টিং এবং অন্যান্য ডিজিটাল পরিষেবা।</p>
- <div class="biki-local-pills"><span>🏦 Banking CSP</span><span>✈️ Travel</span><span>💻 Online Work</span></div></div></div>
- <div class="biki-local-details">
+ <section class="biki-enquiry biki-enquiry-premium" id="bikiPublicEnquiry"><div class="v-wrap">
+<div class="biki-enquiry-layout">
+<aside class="biki-enquiry-contact" aria-label="দোকানের ঠিকানা ও যোগাযোগ"><div class="biki-local-details">
  <div class="biki-detail"><span class="biki-detail-icon">📍</span><div><b>দোকানের ঠিকানা</b><p>Galimpur Road, Near Galimpur Club, Malda, West Bengal, India</p></div></div>
  <div class="biki-detail"><span class="biki-detail-icon">📞</span><div><b>যোগাযোগের নম্বর</b><p><a href="tel:+919614215040">9614215040</a> · <a href="tel:+919733043212">9733043212</a></p></div></div>
  <div class="biki-detail"><span class="biki-detail-icon">🧭</span><div><b>Google Maps-এ দোকান খুঁজুন</b><p>ঠিকানা ও রাস্তা দেখার জন্য Maps খুলুন।</p></div></div>
  <div class="biki-local-actions"><a class="biki-local-primary" href="https://www.google.com/maps/search/?api=1&query=Biki%20Online%20Service%20Center%20Galimpur%20Road%20Near%20Galimpur%20Club%20Malda%20West%20Bengal" target="_blank" rel="noopener noreferrer">📍 Google Maps-এ দেখুন</a><a class="biki-local-secondary" href="tel:+919614215040">☎ এখনই ফোন করুন</a></div>
- </div></div></div></section>
- <section class="biki-enquiry" id="bikiPublicEnquiry"><div class="v-wrap">
-<h2>📨 Quick Service Enquiry</h2><p>আপনার প্রয়োজন জানান — আমরা যোগাযোগ করব।</p>
+ </div></aside>
+<div class="biki-enquiry-form-side"><div class="biki-enquiry-heading"><span class="biki-enquiry-heading-icon" aria-hidden="true">✉</span><div><h2>Quick Service <em>Enquiry</em></h2><p>আপনার প্রয়োজন জানান — আমরা দ্রুত যোগাযোগ করব।</p></div></div>
 <form id="bikiPublicEnquiryForm" autocomplete="on">
 <div class="biki-enquiry-grid">
 <div><label for="bikiEnqName">Customer Name *</label><input id="bikiEnqName" name="name" maxlength="100" autocomplete="name" required placeholder="আপনার নাম"></div>
@@ -509,9 +547,9 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
 <div class="biki-enquiry-full"><label for="bikiEnqService">Service *</label><select id="bikiEnqService" name="service" required><option value="">পরিষেবা নির্বাচন করুন</option><option>WBGB CSP / Banking</option><option>Train Ticket Booking</option><option>Flight Ticket Booking</option><option>Bus Ticket Booking</option><option>PAN Card</option><option>Aadhaar Services</option><option>Voter Card</option><option>Ration Card</option><option>DBT / Aadhaar Seeding</option><option>Ayushman Bharat</option><option>Recharge / Bill Payment</option><option>Print / Photocopy</option><option>Vehicle Insurance</option><option>Other Online Service</option></select></div>
 <div class="biki-enquiry-full"><label for="bikiEnqMessage">Enquiry Details *</label><textarea id="bikiEnqMessage" name="message" rows="4" maxlength="1200" required placeholder="কী কাজ করতে চান, বিস্তারিত লিখুন"></textarea></div>
 </div><button id="bikiEnqSubmit" type="submit">📩 Submit Enquiry</button><div id="bikiEnqStatus" class="biki-enquiry-status" role="status" aria-live="polite"></div><p class="biki-enquiry-privacy">Submit করলে আপনার দেওয়া তথ্য BIKI ONLINE SERVICE CENTER-এর কাছে Enquiry-এর উত্তর দেওয়ার জন্য পাঠানো হবে। OTP, Password বা ব্যাংকের গোপন তথ্য লিখবেন না।</p>
-</form></div></section>
+</form></div></div></div></section>
 <section class="biki-contact-footer" id="bikiPublicContact"><div class="v-wrap"><div><span>WE'RE HERE TO HELP</span><h2>আজই আমাদের সেন্টারে আসুন</h2><p>গালিমপুর বাজার, চাঁচল, মালদা • আপনার সব জরুরি অনলাইন কাজের জন্য যোগাযোগ করুন।</p></div><div class="biki-footer-buttons"><a href="tel:+919614215040">☎ 9614215040</a><a href="https://www.google.com/maps/search/?api=1&query=Biki%20Online%20Service%20Center%20Galimpur%20Road%20Near%20Galimpur%20Club%20Malda%20West%20Bengal" target="_blank" rel="noopener noreferrer">🧭 Directions</a></div></div></section>
- <footer class="biki-final-footer"><div class="v-wrap"><strong>BIKI ONLINE SERVICE CENTER</strong><span>Galimpur Road · Near Galimpur Club · Malda, West Bengal</span><small>Independent assisted-service center; not an official government or bank website. Service availability is subject to applicable rules and authorization.</small></div></footer>
+ 
 </div>
 <button id="bikiPublicBack" type="button" onclick="bikiPublicShowHome()">⌂ Public Website</button>
 <script>
