@@ -302,7 +302,9 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
 #bikiPublicHome .biki-wbgb-note{font-size:11px;color:#667789;margin:10px 0 0;line-height:1.6}
 </style>
 <style id="biki-bill-payment-stage-style">.biki-bill-payment-stage{margin:17px 0 14px;padding:17px;border:1px solid #d7e5f8;border-radius:13px;background:linear-gradient(135deg,#f5faff,#fff)}.biki-bill-payment-stage .formgrid{margin-top:9px}.biki-bill-payment-stage .field{min-width:0}@media(max-width:600px){.biki-bill-payment-stage{padding:12px}}</style>
-</head>
+<style id="biki-due-action-design">
+#dueRows .biki-due-actions{display:flex;gap:8px;align-items:center;min-width:208px}#dueRows .biki-due-actions button{flex:1}#dueRows .biki-due-received,#dueRows .biki-due-delete{border:0;border-radius:8px;padding:11px 15px;color:#fff;font-weight:750;white-space:nowrap;min-height:42px}#dueRows .biki-due-received{background:#15803d}#dueRows .biki-due-delete{background:#dc2626}#dueRows .biki-due-received:hover{background:#166534}#dueRows .biki-due-delete:hover{background:#b91c1c}#dueRows button:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}
+</style></head>
 <body>
 <!-- Completely redesigned public-facing site; existing private billing logic below is retained. -->
 <div id="bikiPublicHome" role="region" aria-label="BIKI Online Service Center public website">
@@ -625,7 +627,7 @@ function render(){
  $('dueRows').innerHTML=data.dues.filter(d=>Number(d.amount||0)>0)
  .filter(d=>!$('dueSearchName').value.trim()||String(d.name||'').toLocaleLowerCase().includes($('dueSearchName').value.trim().toLocaleLowerCase()))
  .filter(d=>!$('dueSearchDate').value||String(d.date||'').slice(0,10)===$('dueSearchDate').value)
- .map(d=>`<tr><td>${esc(d.name)}</td><td>${d.phone?`<a href="tel:${esc(d.phone)}">${esc(d.phone)}</a>`:'—'}</td><td>${esc(d.date||"—")}</td><td>${esc(d.note)}${d.receiptNo?'<small>Receipt: '+esc(d.receiptNo)+'</small>':''}</td><td>${money(d.amount)}</td><td>${(d.saleId||d.ticketId)?`<button class="outline" onclick="bikiCollectInvoiceDue('${d.id}')">Collect via Ledger</button>`:`<button class="outline" onclick="bikiCollectInvoiceDue('${d.id}')">Received</button> <button class="danger" onclick="del('dues','${d.id}')">Delete</button>`}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">কোনো বাকি নেই</td></tr>';
+ .map(d=>`<tr><td>${esc(d.name)}</td><td>${d.phone?`<a href="tel:${esc(d.phone)}">${esc(d.phone)}</a>`:'—'}</td><td>${esc(d.date||"—")}</td><td>${esc(d.note)}${d.receiptNo?'<small>Receipt: '+esc(d.receiptNo)+'</small>':''}</td><td>${money(d.amount)}</td><td>${(d.saleId||d.ticketId)?`<button class="biki-due-received" onclick="bikiCollectInvoiceDue('${d.id}')">✓ Received</button>`:`<div class="biki-due-actions"><button class="biki-due-received" onclick="bikiCollectInvoiceDue('${d.id}')">✓ Received</button><button class="biki-due-delete" onclick="del('dues','${d.id}')">🗑 Delete</button></div>`}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">কোনো বাকি নেই</td></tr>';
  $('serviceList').innerHTML=data.services.map(s=>`<span class="btn outline">${esc(s)}</span>`).join('');
  renderSalesReport();
  const previousSelection=$('saleProduct').value;
