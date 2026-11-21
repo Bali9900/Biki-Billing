@@ -585,7 +585,17 @@ let data=JSON.parse(localStorage.getItem('biki_accounting_v1')||'{"transactions"
 data.sales=data.sales||[]; function save(){localStorage.setItem('biki_accounting_v1',JSON.stringify(data));render()}
 function show(page){if(bikiIsStaff()&&!['dashboard','sales','customers','dues'].includes(page)){alert('Only Admin can open this page.');return;}document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===page));document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$('topTitle').textContent=({dashboard:'Dashboard',sales:'Sales / বিক্রি',transactions:'Income & Expense',products:'Products',customers:'Customers',dues:'Due Management',services:'Services',reports:'Reports',settings:'Settings'})[page];}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.page));
-function del(arr,id){if(bikiIsStaff()){alert('Delete requires Admin access.');return;}if(confirm('মুছে ফেলতে চান?')){data[arr]=data[arr].filter(x=>x.id!==id);save()}}
+function del(arr,id){
+ if(bikiIsStaff()){alert('Delete requires Admin access.');return;}
+ const record=(data[arr]||[]).find(x=>x.id===id);
+ if(!record)return;
+ if(arr==='dues'&&(record.saleId||record.ticketId))return alert('Linked due must be managed via Ledger.');
+ if(!confirm(arr==='dues'?'Delete due without receiving payment?':'মুছে ফেলতে চান?'))return;
+ data[arr]=data[arr].filter(x=>x.id!==id);save();
+ if(arr==='dues'){
+   try{window.bikiTelegramAlert?.enqueue({type:'due_deleted',customer:record.name||'',amount:Number(record.amount||0),remaining_due:0,note:record.note||'',reference:record.receiptNo||record.id},'due_deleted:'+record.id)}catch(err){console.warn('Due delete alert queue failed',err)}
+ }
+}
 function bikiLocalToday(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 let bikiDashboardDay=bikiLocalToday();
 function bikiRenderBusinessOverview(today,inc,exp){
@@ -615,7 +625,7 @@ function render(){
  $('dueRows').innerHTML=data.dues.filter(d=>Number(d.amount||0)>0)
  .filter(d=>!$('dueSearchName').value.trim()||String(d.name||'').toLocaleLowerCase().includes($('dueSearchName').value.trim().toLocaleLowerCase()))
  .filter(d=>!$('dueSearchDate').value||String(d.date||'').slice(0,10)===$('dueSearchDate').value)
- .map(d=>`<tr><td>${esc(d.name)}</td><td>${d.phone?`<a href="tel:${esc(d.phone)}">${esc(d.phone)}</a>`:'—'}</td><td>${esc(d.date||"—")}</td><td>${esc(d.note)}${d.receiptNo?'<small>Receipt: '+esc(d.receiptNo)+'</small>':''}</td><td>${money(d.amount)}</td><td>${(d.saleId||d.ticketId)?`<button class="outline" onclick="bikiCollectInvoiceDue('${d.id}')">Collect via Ledger</button>`:`<button class="danger" onclick="del('dues','${d.id}')">Received / Delete</button>`}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">কোনো বাকি নেই</td></tr>';
+ .map(d=>`<tr><td>${esc(d.name)}</td><td>${d.phone?`<a href="tel:${esc(d.phone)}">${esc(d.phone)}</a>`:'—'}</td><td>${esc(d.date||"—")}</td><td>${esc(d.note)}${d.receiptNo?'<small>Receipt: '+esc(d.receiptNo)+'</small>':''}</td><td>${money(d.amount)}</td><td>${(d.saleId||d.ticketId)?`<button class="outline" onclick="bikiCollectInvoiceDue('${d.id}')">Collect via Ledger</button>`:`<button class="outline" onclick="bikiCollectInvoiceDue('${d.id}')">Received</button> <button class="danger" onclick="del('dues','${d.id}')">Delete</button>`}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">কোনো বাকি নেই</td></tr>';
  $('serviceList').innerHTML=data.services.map(s=>`<span class="btn outline">${esc(s)}</span>`).join('');
  renderSalesReport();
  const previousSelection=$('saleProduct').value;
@@ -629,6 +639,7 @@ $('dueSearchDate').addEventListener('change',render);
 function bikiCollectInvoiceDue(dueId){
  const d=(data.dues||[]).find(x=>String(x.id)===String(dueId));
  if(!d)return alert('Due record পাওয়া যায়নি।');
+ if(!d.saleId&&!d.ticketId&&bikiIsStaff())return alert('Payment requires Admin access.');
  const balance=Math.round(Number(d.amount||0)*100)/100;
  if(!(balance>0))return alert('এই Receipt-এর কোনো বাকি নেই।');
  const raw=prompt('Receipt: '+(d.receiptNo||'—')+'\nCustomer: '+(d.name||'—')+'\nRemaining: ₹'+balance.toFixed(2)+'\n\nReceived Amount লিখুন:',balance.toFixed(2));
