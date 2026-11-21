@@ -882,18 +882,20 @@ function bikiSaleVoiceInit(){
  bikiSaleVoiceRefresh();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bikiSaleVoiceInit);else bikiSaleVoiceInit();
-// Reuse one WhatsApp tab per billing session where browser policy permits.
-let bikiWhatsAppWindow=null;
+// WhatsApp Beta Desktop: launch only after an explicit user click.
+function bikiWhatsAppDesktopUrl(phone,message){
+ const p=String(phone||'').replace(/\D/g,'');
+ const normalized=p.length===10?'91'+p:p;
+ return 'whatsapp://send?'+(normalized?'phone='+encodeURIComponent(normalized)+'&':'')+'text='+encodeURIComponent(message);
+}
+function bikiWhatsAppWebUrl(phone,message){
+ const p=String(phone||'').replace(/\D/g,'');
+ const normalized=p.length===10?'91'+p:p;
+ return 'https://web.whatsapp.com/send?'+(normalized?'phone='+encodeURIComponent(normalized)+'&':'')+'text='+encodeURIComponent(message);
+}
 function bikiOpenBillWhatsApp(url){
- try{
-  if(bikiWhatsAppWindow && !bikiWhatsAppWindow.closed){
-   bikiWhatsAppWindow.location.href=url;
-   bikiWhatsAppWindow.focus();
-   return;
-  }
-  bikiWhatsAppWindow=window.open('about:blank','BIKI_BILL_WHATSAPP');
-  if(bikiWhatsAppWindow){bikiWhatsAppWindow.opener=null;bikiWhatsAppWindow.location.replace(url);bikiWhatsAppWindow.focus();}
- }catch(e){console.warn('WhatsApp tab unavailable',e);bikiWhatsAppWindow=null;}
+ // Direct custom-protocol navigation does not open a new browser tab.
+ window.location.href=url;
 }
 document.getElementById('bikiBillWhatsAppLink').addEventListener('click',function(e){
  if(this.hasAttribute('href')){e.preventDefault();bikiOpenBillWhatsApp(this.href);}
@@ -937,9 +939,7 @@ $('saveBillBtn').onclick=()=>{
   const fmt=n=>'₹'+Number(n||0).toFixed(2);
   const msg=['🧾 CUSTOMER BILL',shop,'Invoice: '+s.receiptNo,'Date: '+s.date,'Customer: '+s.customer,'Items: '+s.productName,'Total Bill: '+fmt(s.total),'Paid Amount: '+fmt(s.paidAmount),'Due Amount: '+fmt(s.dueAmount),'Payment Mode: '+s.mode,'আমাদের পরিষেবা গ্রহণ করার জন্য ধন্যবাদ।'].join('\n');
   const phone='91'+s.phone;
-  const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  const query='phone='+phone+'&text='+encodeURIComponent(msg);
-  const url=mobile?'https://api.whatsapp.com/send?'+query:'https://web.whatsapp.com/send?'+query;
+  const url=bikiWhatsAppDesktopUrl(phone,msg);
   if(waStatus)waStatus.textContent='📲 Send Bill to +'+phone;
   if(waStatus){waStatus.href=url;waStatus.hidden=false;}
   // Manual only: saving never opens WhatsApp; use the green button after saving.
@@ -1412,13 +1412,13 @@ const oldTxSubmit=txForm.onsubmit;txForm.onsubmit=e=>{const before=new Set((data
 const ids=['proCashDate','proClosingDate','proCommissionDate'];ids.forEach(id=>$p(id).value=today());$p('proProfitMonth').value=today().slice(0,7);
 $p('proDownloadBackup').onclick=downloadJson;
 $p('proDueRefresh').onclick=dueResults;
-$p('proDueResults').addEventListener('click',e=>{const b=e.target.closest('button[data-due-phone]');if(!b)return;const phone=b.dataset.duePhone.replace(/\D/g,'');if(phone.length!==10){alert('Customer-এর valid 10-digit mobile number দরকার।');return;}const msg='নমস্কার '+b.dataset.dueName+', আপনার বাকি টাকা ₹'+b.dataset.dueAmount+'। অনুগ্রহ করে BIKI ONLINE SERVICE CENTER-এ যোগাযোগ করুন।';window.open('https://wa.me/91'+phone+'?text='+encodeURIComponent(msg),'_blank','noopener');});
+$p('proDueResults').addEventListener('click',e=>{const b=e.target.closest('button[data-due-phone]');if(!b)return;const phone=b.dataset.duePhone.replace(/\D/g,'');if(phone.length!==10){alert('Customer-এর valid 10-digit mobile number দরকার।');return;}const msg='নমস্কার '+b.dataset.dueName+', আপনার বাকি টাকা ₹'+b.dataset.dueAmount+'। অনুগ্রহ করে BIKI ONLINE SERVICE CENTER-এ যোগাযোগ করুন।';bikiOpenBillWhatsApp(bikiWhatsAppDesktopUrl('91'+phone,msg));});
 $p('proSaveOpening').onclick=()=>{const n=num($p('proOpening').value);if(n<0)return alert('Invalid amount');pro().opening[$p('proCashDate').value]=n;store();};$p('proCashDate').onchange=cashResults;
 $p('proProfitMonth').onchange=profitResults;
 $p('proAddCommission').onclick=()=>{const service=$p('proCommissionService').value.trim(),amount=num($p('proCommissionAmount').value),cost=num($p('proCommissionCost').value);if(!service||amount<0||cost<0)return alert('Enter valid service, commission and cost.');pro().commissions.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),service,date:$p('proCommissionDate').value||today(),amount,cost});pro().audit.push({at:new Date().toISOString(),actor:sessionStorage.getItem('biki_active_role')||'admin',entity:'commission',action:'ADD',id:service});store();$p('proCommissionService').value='';};
 $p('proClosingRefresh').onclick=closingResults;$p('proClosingDate').onchange=closingResults;$p('proClosingDownload').onclick=()=>{const c=closingResults();download('BIKI-DAILY-CLOSING-'+c.date+'.csv',Object.entries(c).map(([k,v])=>'"'+k+'","'+String(v).replace(/"/g,'""')+'"').join('\r\n'),'text/csv');};
 $p('proCustomerSearch').onclick=customerResults;$p('proFindInvoice').onclick=invoiceResults;
-$p('proInvoiceResults').addEventListener('click',e=>{const b=e.target.closest('button[data-share-invoice]');if(!b)return;const s=(data.sales||[]).find(x=>String(x.id)===b.dataset.shareInvoice);if(!s)return;const msg='BIKI ONLINE SERVICE CENTER\nInvoice: '+(s.receiptNo||'')+'\nDate: '+(s.date||'')+'\nCustomer: '+(s.customer||'')+'\nTotal: '+cashFmt(s.total)+'\nThank you!';const phone=String(s.phone||'').replace(/\D/g,'');const link='https://wa.me/'+(phone.length===10?'91'+phone:'')+'?text='+encodeURIComponent(msg);window.open(link,'_blank','noopener');});
+$p('proInvoiceResults').addEventListener('click',e=>{const b=e.target.closest('button[data-share-invoice]');if(!b)return;const s=(data.sales||[]).find(x=>String(x.id)===b.dataset.shareInvoice);if(!s)return;const msg='BIKI ONLINE SERVICE CENTER\nInvoice: '+(s.receiptNo||'')+'\nDate: '+(s.date||'')+'\nCustomer: '+(s.customer||'')+'\nTotal: '+cashFmt(s.total)+'\nThank you!';const phone=String(s.phone||'').replace(/\D/g,'');const link=bikiWhatsAppDesktopUrl(phone,msg);bikiOpenBillWhatsApp(bikiWhatsAppDesktopUrl(phone,msg));});
 $p('proSearchButton').onclick=searchResults;$p('proExportAudit').onclick=()=>{const arr=pro().audit;download('BIKI-AUDIT-'+today()+'.csv','Time,Role,Action,Entity,Record ID\r\n'+arr.map(x=>[x.at,x.actor,x.action,x.entity,x.id].map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\r\n'),'text/csv');};
 window.addEventListener('focus',()=>{if(sessionStorage.getItem('biki_logged_in')==='yes')proRender()});
 const originalRender=render;render=function(){originalRender();if(document.querySelector('#businessPro.active'))proRender();};
@@ -1485,7 +1485,7 @@ if(ticketEditId){const idx=v().tickets.findIndex(t=>String(t.id)===String(ticket
 el('v2TicketOut').addEventListener('click',e=>{const edit=e.target.closest('[data-ticket-edit]'),print=e.target.closest('[data-ticket-print]'),view=e.target.closest('[data-ticket-pdf-view]'),down=e.target.closest('[data-ticket-pdf-download]'),remove=e.target.closest('[data-ticket-pdf-delete]');if(!edit&&!print&&!view&&!down&&!remove)return;const target=edit||print||view||down||remove;const t=v().tickets.find(x=>String(x.id)===String(target.dataset[edit?'ticketEdit':print?'ticketPrint':view?'ticketPdfView':down?'ticketPdfDownload':'ticketPdfDelete']));if(!t)return;if(view||down){ticketPdfOpen(t,!!down);return}if(remove){if(!confirm('Remove this ticket PDF? Cloud file will be deleted too.'))return;(async()=>{if(t.pdfCloudPath)await window.bikiPdfCloud.remove(t.pdfCloudPath);else await ticketPdfOperation(t.id,'delete');delete t.pdfName;delete t.pdfSize;delete t.pdfCloudPath;persist();tickets()})().catch(e=>alert('Could not remove PDF: '+e.message));return;}if(edit){ticketEditId=t.id;const mapping={Customer:'customer',Phone:'phone',Passengers:'passengers',From:'from',To:'to',Booked:'bookedDate',Journey:'journeyDate',Time:'departureTime',Return:'returnDate',PNR:'pnr',Number:'number',Seat:'seat',Status:'status',Fare:'fare',Service:'serviceCharge',Commission:'commission',Payment:'payment',Notes:'notes',Mode:'mode'};for(const [field,key] of Object.entries(mapping)){const node=el('v2Ticket'+field);node.value=t[key]??(field==='Booked'?t.date||'':'');}el('v2TicketSave').textContent='Update Booking';el('v2TicketPDF').value='';el('v2TicketPDFStatus').textContent=t.pdfName?'Existing PDF: '+t.pdfName+' (select another PDF to replace)':'No PDF attached';el('v2TicketMessage').textContent='Editing booking '+t.pnr;el('v2TicketCustomer').scrollIntoView({behavior:'smooth',block:'center'});return;}const info=[['Customer',t.customer],['Mobile',t.phone],['Travel',t.mode],['From',t.from],['To',t.to],['Booking Date',t.bookedDate||t.date],['Journey Date',t.journeyDate],['Departure Time',t.departureTime],['Return Date',t.returnDate],['PNR / Reference',t.pnr],['Vehicle Number',t.number],['Seat / Class',t.seat],['Passengers',t.passengers],['Status',t.status],['Fare',fmt(t.fare)],['Service Charge',fmt(t.serviceCharge)],['Payment',t.payment],['Notes',t.notes]];const w=window.open('','_blank');if(!w)return alert('Allow popups to print');w.document.write('<!doctype html><html><head><title>Booking Summary</title><style>body{font:15px Arial;max-width:700px;margin:40px auto}h1{font-size:22px}td{padding:8px;border-bottom:1px solid #ddd}table{width:100%;border-collapse:collapse}</style></head><body><h1>BIKI ONLINE SERVICE CENTER</h1><h2>Ticket Booking Summary (not a travel ticket)</h2><table>'+info.map(([a,b])=>'<tr><td>'+safe(a)+'</td><td>'+safe(b||'—')+'</td></tr>').join('')+'</table><p>Verify journey details against the official ticket.</p></body></html>');w.document.close();w.focus();w.print();});
 el('v2TicketExport').onclick=()=>{const fields=['bookedDate','journeyDate','departureTime','returnDate','mode','customer','phone','passengers','from','to','pnr','number','seat','status','fare','serviceCharge','commission','payment','notes'];const csv=[fields.join(','),...v().tickets.map(t=>fields.map(f=>'"'+String(t[f]??(f==='bookedDate'?t.date||'':'')).replace(/"/g,'""')+'"').join(','))].join('\r\n');download('BIKI-TICKETS-'+day()+'.csv',csv,'text/csv');};
 ticketClear();
-el('v2ShareFind').onclick=()=>{const s=findSale(val('v2ShareInvoice'));if(!s)return el('v2ShareOut').textContent='Invoice not found';const phone=String(s.phone||'').replace(/\D/g,'');const message='BIKI ONLINE SERVICE CENTER\nInvoice: '+(s.receiptNo||s.id)+'\nCustomer: '+(s.customer||'')+'\nTotal: '+fmt(s.total||s.amount)+'\nThank you.';const url='https://wa.me/'+(phone.length===10?'91'+phone:'')+'?text='+encodeURIComponent(message);el('v2ShareOut').innerHTML='<a href="'+safe(url)+'" target="_blank" rel="noopener noreferrer">Open WhatsApp receipt summary</a>';};
+el('v2ShareFind').onclick=()=>{const s=findSale(val('v2ShareInvoice'));if(!s)return el('v2ShareOut').textContent='Invoice not found';const phone=String(s.phone||'').replace(/\D/g,'');const message='BIKI ONLINE SERVICE CENTER\nInvoice: '+(s.receiptNo||s.id)+'\nCustomer: '+(s.customer||'')+'\nTotal: '+fmt(s.total||s.amount)+'\nThank you.';const url=bikiWhatsAppDesktopUrl(phone,message);el('v2ShareOut').innerHTML='<a href="'+safe(url)+'" target="_blank" rel="noopener noreferrer">Open in WhatsApp Beta Desktop</a>';};
 el('v2TargetMonth').value=day().slice(0,7);function targets(){const m=val('v2TargetMonth'),t=v().targets[m]||{},income=(data.transactions||[]).filter(x=>String(x.date).startsWith(m)&&x.kind==='income').reduce((a,x)=>a+N(x.amount),0),expenses=(data.transactions||[]).filter(x=>String(x.date).startsWith(m)&&x.kind==='expense').reduce((a,x)=>a+N(x.amount),0);el('v2TargetOut').innerHTML='<p>Income '+fmt(income)+' / Target '+fmt(t.income)+' ('+(t.income?Math.round(income/t.income*100):0)+'%)</p><p>Expense '+fmt(expenses)+' / Budget '+fmt(t.budget)+'</p>';el('v2AlertsOut').textContent=t.budget&&expenses>t.budget?'⚠ Monthly expense budget exceeded by '+fmt(expenses-t.budget):'No monthly budget overrun detected. Set a target first.';}
 el('v2TargetSave').onclick=()=>{v().targets[val('v2TargetMonth')]={income:N(val('v2TargetAmount')),budget:N(val('v2TargetBudget'))};log('MONTHLY_TARGET',val('v2TargetMonth'));persist();targets()};el('v2TargetMonth').onchange=targets;
 function attendance(){el('v2AttendanceOut').innerHTML=rows(['Staff','In','Out'],v().attendance.slice(-15).reverse().map(a=>[safe(a.name),safe(new Date(a.in).toLocaleString('en-IN')),a.out?safe(new Date(a.out).toLocaleString('en-IN')):'Working']));}
