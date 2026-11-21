@@ -430,7 +430,22 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
 .biki-template-total{text-align:right;font-weight:bold;color:var(--tpl-color);margin-top:12px}
 .biki-template-choice.selected .biki-template-sheet{outline:2px solid var(--tpl-color)}
 @media(max-width:600px){.biki-template-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}
-</style></head>
+</style><style id="biki-public-enquiry-style">
+#bikiPublicHome .biki-enquiry{padding:58px 0;background:linear-gradient(145deg,#eaf4ff,#fff);scroll-margin-top:80px}
+#bikiPublicHome .biki-enquiry h2{font-size:clamp(25px,3vw,36px);color:#092f76;margin:0 0 8px}
+#bikiPublicHome .biki-enquiry p{color:#59718d;margin:0 0 24px}
+#bikiPublicHome .biki-enquiry form{max-width:960px;background:#fff;border:1px solid #d6e6fb;border-radius:22px;padding:25px;box-shadow:0 15px 40px #153d7314}
+#bikiPublicHome .biki-enquiry-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+#bikiPublicHome .biki-enquiry label{display:block;font-size:13px;font-weight:750;color:#1b3f70;margin-bottom:6px}
+#bikiPublicHome .biki-enquiry input,#bikiPublicHome .biki-enquiry select,#bikiPublicHome .biki-enquiry textarea{width:100%;padding:12px 14px;border:1px solid #cbdcf0;border-radius:10px;background:#fff;color:#12345c;font:inherit}
+#bikiPublicHome .biki-enquiry .biki-enquiry-full{grid-column:1/-1}
+#bikiPublicHome .biki-enquiry button{background:linear-gradient(90deg,#0869e5,#0038b6);color:#fff;border:0;border-radius:10px;padding:14px 28px;font-weight:800;margin-top:17px}
+#bikiPublicHome .biki-enquiry button:disabled{opacity:.6;cursor:wait}
+#bikiPublicHome .biki-enquiry-status{font-size:13px;margin-top:12px;min-height:20px}
+#bikiPublicHome .biki-enquiry .biki-enquiry-privacy{font-size:12px;color:#60758b;margin:13px 0 0}
+@media(max-width:650px){#bikiPublicHome .biki-enquiry-grid{grid-template-columns:1fr}#bikiPublicHome .biki-enquiry form{padding:16px}}
+</style>
+</head>
 <body>
 <!-- Completely redesigned public-facing site; existing private billing logic below is retained. -->
 <div id="bikiPublicHome" role="region" aria-label="BIKI Online Service Center public website">
@@ -484,7 +499,18 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
  <div class="biki-detail"><span class="biki-detail-icon">🧭</span><div><b>Google Maps-এ দোকান খুঁজুন</b><p>ঠিকানা ও রাস্তা দেখার জন্য Maps খুলুন।</p></div></div>
  <div class="biki-local-actions"><a class="biki-local-primary" href="https://www.google.com/maps/search/?api=1&query=Biki%20Online%20Service%20Center%20Galimpur%20Road%20Near%20Galimpur%20Club%20Malda%20West%20Bengal" target="_blank" rel="noopener noreferrer">📍 Google Maps-এ দেখুন</a><a class="biki-local-secondary" href="tel:+919614215040">☎ এখনই ফোন করুন</a></div>
  </div></div></div></section>
- <section class="biki-contact-footer" id="bikiPublicContact"><div class="v-wrap"><div><span>WE'RE HERE TO HELP</span><h2>আজই আমাদের সেন্টারে আসুন</h2><p>গালিমপুর বাজার, চাঁচল, মালদা • আপনার সব জরুরি অনলাইন কাজের জন্য যোগাযোগ করুন।</p></div><div class="biki-footer-buttons"><a href="tel:+919614215040">☎ 9614215040</a><a href="https://www.google.com/maps/search/?api=1&query=Biki%20Online%20Service%20Center%20Galimpur%20Road%20Near%20Galimpur%20Club%20Malda%20West%20Bengal" target="_blank" rel="noopener noreferrer">🧭 Directions</a></div></div></section>
+ <section class="biki-enquiry" id="bikiPublicEnquiry"><div class="v-wrap">
+<h2>📨 Quick Service Enquiry</h2><p>আপনার প্রয়োজন জানান — আমরা যোগাযোগ করব।</p>
+<form id="bikiPublicEnquiryForm" autocomplete="on">
+<div class="biki-enquiry-grid">
+<div><label for="bikiEnqName">Customer Name *</label><input id="bikiEnqName" name="name" maxlength="100" autocomplete="name" required placeholder="আপনার নাম"></div>
+<div><label for="bikiEnqMobile">Mobile Number *</label><input id="bikiEnqMobile" name="mobile" inputmode="numeric" autocomplete="tel" pattern="[6-9][0-9]{9}" maxlength="10" required placeholder="10-digit mobile number"></div>
+<div class="biki-enquiry-full"><label for="bikiEnqAddress">Address *</label><input id="bikiEnqAddress" name="address" maxlength="250" autocomplete="street-address" required placeholder="গ্রাম, পোস্ট, থানা, জেলা"></div>
+<div class="biki-enquiry-full"><label for="bikiEnqService">Service *</label><select id="bikiEnqService" name="service" required><option value="">পরিষেবা নির্বাচন করুন</option><option>WBGB CSP / Banking</option><option>Train Ticket Booking</option><option>Flight Ticket Booking</option><option>Bus Ticket Booking</option><option>PAN Card</option><option>Aadhaar Services</option><option>Voter Card</option><option>Ration Card</option><option>DBT / Aadhaar Seeding</option><option>Ayushman Bharat</option><option>Recharge / Bill Payment</option><option>Print / Photocopy</option><option>Vehicle Insurance</option><option>Other Online Service</option></select></div>
+<div class="biki-enquiry-full"><label for="bikiEnqMessage">Enquiry Details *</label><textarea id="bikiEnqMessage" name="message" rows="4" maxlength="1200" required placeholder="কী কাজ করতে চান, বিস্তারিত লিখুন"></textarea></div>
+</div><button id="bikiEnqSubmit" type="submit">📩 Submit Enquiry</button><div id="bikiEnqStatus" class="biki-enquiry-status" role="status" aria-live="polite"></div><p class="biki-enquiry-privacy">Submit করলে আপনার দেওয়া তথ্য BIKI ONLINE SERVICE CENTER-এর কাছে Enquiry-এর উত্তর দেওয়ার জন্য পাঠানো হবে। OTP, Password বা ব্যাংকের গোপন তথ্য লিখবেন না।</p>
+</form></div></section>
+<section class="biki-contact-footer" id="bikiPublicContact"><div class="v-wrap"><div><span>WE'RE HERE TO HELP</span><h2>আজই আমাদের সেন্টারে আসুন</h2><p>গালিমপুর বাজার, চাঁচল, মালদা • আপনার সব জরুরি অনলাইন কাজের জন্য যোগাযোগ করুন।</p></div><div class="biki-footer-buttons"><a href="tel:+919614215040">☎ 9614215040</a><a href="https://www.google.com/maps/search/?api=1&query=Biki%20Online%20Service%20Center%20Galimpur%20Road%20Near%20Galimpur%20Club%20Malda%20West%20Bengal" target="_blank" rel="noopener noreferrer">🧭 Directions</a></div></div></section>
  <footer class="biki-final-footer"><div class="v-wrap"><strong>BIKI ONLINE SERVICE CENTER</strong><span>Galimpur Road · Near Galimpur Club · Malda, West Bengal</span><small>Independent assisted-service center; not an official government or bank website. Service availability is subject to applicable rules and authorization.</small></div></footer>
 </div>
 <button id="bikiPublicBack" type="button" onclick="bikiPublicShowHome()">⌂ Public Website</button>
@@ -1132,6 +1158,31 @@ function printReceipt(sid, savePdf=false){
  <table><thead><tr><th>Product / Service</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table>
  <p style="text-align:right">Subtotal: ${money(subtotal)}<br>Discount: ${money(s.discount)}</p><div class="total">Total: ${money(s.total)}</div><p><b>Payment:</b> ${esc(s.mode)}</p>${qrHtml}<div class="line"></div><div class="foot">${esc(v2.footer)}<br>${v2.signature?'<div style="margin-top:38px;text-align:right;border-top:1px solid #999;padding-top:6px">Authorized Signature</div>':''}${esc(shop)}</div></div><script>window.onload=()=>{window.focus();window.print();};<\/script>
 
+<script id="biki-public-enquiry-script">
+(function(){
+'use strict';
+// Replace this URL after deploying the accompanying secure Telegram relay.
+const ENQUIRY_ENDPOINT='';
+const form=document.getElementById('bikiPublicEnquiryForm');
+if(!form)return;
+form.addEventListener('submit',async function(event){
+ event.preventDefault();
+ const status=document.getElementById('bikiEnqStatus');
+ const button=document.getElementById('bikiEnqSubmit');
+ const data=Object.fromEntries(new FormData(form).entries());
+ data.mobile=String(data.mobile||'').trim();
+ if(!/^[6-9][0-9]{9}$/.test(data.mobile)){status.textContent='সঠিক 10-digit Mobile Number দিন।';return;}
+ if(!ENQUIRY_ENDPOINT){status.textContent='Enquiry service setup pending. অনুগ্রহ করে ফোনে যোগাযোগ করুন।';return;}
+ button.disabled=true;status.textContent='Enquiry পাঠানো হচ্ছে...';
+ try{
+  const response=await fetch(ENQUIRY_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(!response.ok)throw new Error('Send failed');
+  status.textContent='ধন্যবাদ! আপনার Enquiry সফলভাবে পাঠানো হয়েছে।';form.reset();
+ }catch(error){status.textContent='Enquiry পাঠানো যায়নি। আবার চেষ্টা করুন অথবা ফোনে যোগাযোগ করুন।';}
+ finally{button.disabled=false;}
+});
+})();
+</script>
 </body></html>`);
  w.document.close();
  if(savePdf) alert('Receipt PDF Save করতে Print Window-তে Destination: Save as PDF নির্বাচন করুন, তারপর Save চাপুন।');
