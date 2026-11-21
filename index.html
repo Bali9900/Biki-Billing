@@ -458,7 +458,7 @@ function bikiFilterPublicServices(){
 <div class="field"><label>Discount on Bill (₹)</label><input id="saleDiscount" type="number" min="0" step=".01" value="0"></div>
 </div></div>
 <div class="bill-actions"><button type="button" class="primary" id="saveBillBtn">✓ Save Complete Bill</button><button type="button" class="outline" id="clearBillBtn">Clear / Cancel</button></div>
-<p class="bill-muted" id="billStatus">Bill Save করার পরে Sales History থেকে Print করুন।</p></div>
+<p class="bill-muted" id="billStatus">Bill Save করার পরে Sales History থেকে Print করুন।</p><div style="margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="bikiBillWhatsAppAuto" checked style="width:auto"> Bill Save হলে WhatsApp খুলুন</label><a id="bikiBillWhatsAppLink" hidden target="_blank" rel="noopener noreferrer" style="background:#128c7e;color:white;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:600">📲 Send Bill via WhatsApp</a></div><p class="bill-muted">WhatsApp-এ মেসেজ প্রস্তুত হবে; Send নিজে চাপুন। গ্রাহকের সম্মতি থাকলে পাঠান।</p></div>
 <aside class="billing-preview"><h3>Live Invoice Preview</h3><div id="billPreviewLogoWrap" style="display:none;text-align:center;margin:10px 0 8px"><img id="billPreviewLogo" alt="Business Logo" style="width:78px;height:78px;max-width:100%;object-fit:contain;border-radius:12px;background:white;padding:4px;border:1px solid #e8edf4"></div><div class="bill-muted" id="billPreviewShop">BIKI ONLINE SERVICE CENTER</div><div class="bill-muted" id="billPreviewContact"></div><hr><div id="billPreviewCustomer"></div><p class="bill-muted" id="billPreviewDate"></p><table><thead><tr><th>ITEM</th><th>QTY</th><th class="right">AMOUNT</th></tr></thead><tbody id="billPreviewRows"></tbody></table><hr><div id="billPreviewSummary"></div><div id="billPreviewQr" style="display:none;text-align:center;margin:14px auto"><img id="billPreviewQrImage" alt="UPI payment QR" style="max-width:145px;max-height:190px;object-fit:contain"><div style="font-size:12px;font-weight:700">Scan & Pay via UPI</div></div><p class="bill-note">Preview only — Print হবে শুধু আপনার Print বাটনে ক্লিক করলে।</p></aside></div>
 <div class="panel" style="margin-top:18px"><h3>Sales History</h3><p class="sub">Receipt PDF চাপলে Print Dialog ছাড়াই PDF সরাসরি Download হবে।<br>Daily / Monthly / Yearly / Date to Date অনুযায়ী Sale খুঁজুন। Delete করতে Admin Login Password লাগবে।</p>
 <div class="formgrid" style="margin:14px 0;align-items:end">
@@ -873,6 +873,17 @@ $('saveBillBtn').onclick=()=>{
  save();bikiSaleVoiceSpeak(total,!!old);window.bikiTelegramAlert?.enqueue({type:s.items?.every(i=>i.type==='service')?'service':'sale',customer:s.customer,service:s.productName,amount:s.total,payment_mode:s.mode,reference:s.receiptNo},'invoice:'+s.id);resetBill();$('billStatus').textContent='Bill '+s.receiptNo+' Saved! Sales History থেকে Print করুন।';
  /* Non-blocking confirmation: browser alert used to interrupt speech. */
  $('billStatus').textContent='✓ Receipt '+s.receiptNo+' Saved! Total '+money(total)+' · Paid '+money(paid)+' · Due '+money(dueAmount)+' — Sales History থেকে Print করুন।';
+ const waStatus=document.getElementById('bikiBillWhatsAppLink');
+ if(waStatus){waStatus.hidden=true;waStatus.removeAttribute('href');}
+ if(!old && /^[0-9]{10}$/.test(s.phone)){
+  const shop=localStorage.getItem('biki_business_name')||'BIKI ONLINE SERVICE CENTER';
+  const fmt=n=>'₹'+Number(n||0).toFixed(2);
+  const msg=['🧾 CUSTOMER BILL',shop,'Invoice: '+s.receiptNo,'Date: '+s.date,'Customer: '+s.customer,'Items: '+s.productName,'Total Bill: '+fmt(s.total),'Paid Amount: '+fmt(s.paidAmount),'Due Amount: '+fmt(s.dueAmount),'Payment Mode: '+s.mode,'আমাদের পরিষেবা গ্রহণ করার জন্য ধন্যবাদ।'].join('\n');
+  const url='https://wa.me/91'+s.phone+'?text='+encodeURIComponent(msg);
+  if(waStatus){waStatus.href=url;waStatus.hidden=false;}
+  if(document.getElementById('bikiBillWhatsAppAuto')?.checked)window.open(url,'_blank','noopener,noreferrer');
+ }
+
 };
 // Download an actual PDF file directly, without opening the browser print dialog.
 async function downloadReceiptPDF(sid){
