@@ -1024,34 +1024,7 @@ function printReceipt(sid, savePdf=false){
  <p><b>Receipt No:</b> ${esc(s.receiptNo)}<br><b>Date:</b> ${esc(s.date)}<br><b>Selling Time:</b> ${esc(s.time||'Not recorded')}<br><b>Customer:</b> ${esc(s.customer)}<br><b>Mobile:</b> ${esc(s.phone||'—')}</p>
  <table><thead><tr><th>Product / Service</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table>
  <p style="text-align:right">Subtotal: ${money(subtotal)}<br>Discount: ${money(s.discount)}</p><div class="total">Total: ${money(s.total)}</div><p><b>Payment:</b> ${esc(s.mode)}</p>${qrHtml}<div class="line"></div><div class="foot">${esc(v2.footer)}<br>${v2.signature?'<div style="margin-top:38px;text-align:right;border-top:1px solid #999;padding-top:6px">Authorized Signature</div>':''}${esc(shop)}</div></div><script>window.onload=()=>{window.focus();window.print();};<\/script>
-<script id="biki-luxury-v3-cloud-decorator">
-(function(){
-  function decorate(){
-    var gate=document.getElementById('bikiCloudGate');
-    if(!gate || gate.querySelector('.biki-v3-cloud-card'))return;
-    var form=gate.querySelector('form');
-    if(!form)return;
-    var card=form.closest('[class*="card"]') || form.parentElement;
-    if(!card || card===gate)return;
-    card.classList.add('biki-v3-cloud-card');
-    var logo=document.createElement('div');logo.className='biki-v3-cloud-logo';
-    var img=document.createElement('img');img.src='./favicon.png?v=6';img.alt='BIKI logo';
-    img.onerror=function(){this.remove();logo.textContent='MB';};logo.appendChild(img);
-    card.insertBefore(logo,card.firstChild);
-    var tag=document.createElement('div');tag.className='biki-v3-cloud-tag';tag.textContent='PREMIUM BUSINESS MANAGEMENT';
-    logo.insertAdjacentElement('afterend',tag);
-    // Remove obsolete instructions only when they are plainly the legacy admin hint.
-    card.querySelectorAll('p,small,div').forEach(function(el){
-      if(el===card || el.contains(form) || el.children.length) return;
-      var t=(el.textContent||'').trim();
-      if(t.indexOf('admin / 1234')!==-1 || t.indexOf('Firebase Console-এ Email/Password User')!==-1){el.style.display='none';}
-    });
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',decorate);else decorate();
-  var observer=new MutationObserver(decorate);
-  observer.observe(document.documentElement,{childList:true,subtree:true});
-})();
-</script>
+
 </body></html>`);
  w.document.close();
  if(savePdf) alert('Receipt PDF Save করতে Print Window-তে Destination: Save as PDF নির্বাচন করুন, তারপর Save চাপুন।');
@@ -1627,4 +1600,32 @@ if(!setup()){
   }
 }
 </style>
+<script id="biki-luxury-v3-cloud-decorator">
+(function(){
+  function decorate(){
+    var gate=document.getElementById('bikiCloudGate');
+    if(!gate || gate.querySelector('.biki-v3-cloud-card'))return;
+    var form=gate.querySelector('form');
+    if(!form)return;
+    var card=form.closest('[class*="card"]') || form.parentElement;
+    if(!card || card===gate)return;
+    card.classList.add('biki-v3-cloud-card');
+    var logo=document.createElement('div');logo.className='biki-v3-cloud-logo';
+    var img=document.createElement('img');img.src='./favicon.png?v=6';img.alt='BIKI logo';
+    img.onerror=function(){this.remove();logo.textContent='MB';};logo.appendChild(img);
+    card.insertBefore(logo,card.firstChild);
+    var tag=document.createElement('div');tag.className='biki-v3-cloud-tag';tag.textContent='PREMIUM BUSINESS MANAGEMENT';
+    logo.insertAdjacentElement('afterend',tag);
+    // Remove obsolete instructions only when they are plainly the legacy admin hint.
+    card.querySelectorAll('p,small,div').forEach(function(el){
+      if(el===card || el.contains(form) || el.children.length) return;
+      var t=(el.textContent||'').trim();
+      if(t.indexOf('admin / 1234')!==-1 || t.indexOf('Firebase Console-এ Email/Password User')!==-1){el.style.display='none';}
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',decorate);else decorate();
+  var observer=new MutationObserver(decorate);
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
 </body></html>
