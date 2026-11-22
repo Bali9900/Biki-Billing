@@ -1809,7 +1809,14 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&getRecord
 window.addEventListener('pageshow',()=>{if(sessionStorage.getItem(LOCK)==='1'&&isDashboard())lock()});
 if(sessionStorage.getItem(LOCK)==='1'&&isDashboard())lock();
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+function start(){
+  if(document.getElementById('bikiCloudTools')){init();return;}
+  const observer=new MutationObserver(()=>{
+    if(document.getElementById('bikiCloudTools')){observer.disconnect();init();}
+  });
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
 </script>
 
@@ -1987,7 +1994,14 @@ form.addEventListener('submit',async function(event){
   const obs=new MutationObserver(()=>{if(tools.classList.contains('biki-cloud-open'))load(false)});
   obs.observe(tools,{attributes:true,attributeFilter:['class']});
  }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+ function start(){
+  if(document.getElementById('bikiCloudTools')){init();return;}
+  const observer=new MutationObserver(()=>{
+    if(document.getElementById('bikiCloudTools')){observer.disconnect();init();}
+  });
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
 </script>
 </body></html>
