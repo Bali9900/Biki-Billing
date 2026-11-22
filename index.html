@@ -557,14 +557,25 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
 <script>
 (function(){
  const v=document.getElementById('bikiPromoPlayer'),home=document.getElementById('bikiPublicHome');if(!v||!home)return;
- let visible=null,waiting=false,manualMute=false,internalMute=false,attempt=0;
- function setMute(value){internalMute=true;v.muted=value;internalMute=false;}
+ let visible=null,waiting=false,manualMute=false,attempt=0;
+ const key='bikiPromoManualMute';
+ try{manualMute=sessionStorage.getItem(key)==='1';}catch(e){}
+ const button=document.createElement('button');button.type='button';button.style.cssText='margin:12px auto 0;padding:9px 20px;border:0;border-radius:9px;background:#1756a5;color:white;cursor:pointer;font-weight:600';
+ v.parentElement.insertAdjacentElement('afterend',button);
+ function label(){button.textContent=v.muted?'🔊 Sound ON':'🔇 Mute';button.setAttribute('aria-pressed',String(v.muted));}
+ function mute(value){v.muted=value;label();}
+ function save(value){manualMute=value;try{sessionStorage.setItem(key,value?'1':'0');}catch(e){}}
+ // Native controls can also change mute. Compare current state with the last programmatic target, not a synchronous event flag.
+ let expected=v.muted;
+ function setMute(value){expected=value;mute(value);}
  function start(){const token=++attempt;waiting=false;setMute(manualMute);v.play().catch(err=>{if(token!==attempt||!visible||manualMute||err.name!=='NotAllowedError')return;waiting=true;setMute(true);v.play().catch(()=>{});});}
- v.addEventListener('volumechange',()=>{if(internalMute)return;if(!v.muted&&v.volume>0){manualMute=false;waiting=false;}else if(!waiting){manualMute=true;}});
- function unlock(e){if(!e.isTrusted||!visible||!waiting||manualMute||v.contains(e.target))return;waiting=false;setMute(false);v.play().catch(()=>{if(!visible||manualMute)return;waiting=true;setMute(true);v.play().catch(()=>{});});}
+ v.addEventListener('volumechange',()=>{if(v.muted!==expected){expected=v.muted;waiting=false;++attempt;save(v.muted);}label();});
+ function enable(){waiting=false;save(false);start();}
+ button.addEventListener('click',()=>{if(v.muted){enable();}else{++attempt;waiting=false;save(true);setMute(true);}});
+ function unlock(e){if(!e.isTrusted||!visible||!waiting||manualMute||v.contains(e.target)||button.contains(e.target))return;enable();}
  document.addEventListener('click',unlock,true);document.addEventListener('keydown',unlock,true);
  function sync(){const next=home.getClientRects().length>0;if(next===visible)return;visible=next;if(next)start();else{++attempt;waiting=false;v.pause();}}
- new MutationObserver(sync).observe(home,{attributes:true,attributeFilter:['style','class','hidden']});window.addEventListener('pageshow',sync);sync();
+ new MutationObserver(sync).observe(home,{attributes:true,attributeFilter:['style','class','hidden']});window.addEventListener('pageshow',sync);label();sync();
 })();
 </script>
 
