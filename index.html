@@ -551,11 +551,21 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
 <section id="bikiPromoVideo" aria-labelledby="bikiPromoTitle">
 <h2 id="bikiPromoTitle">Discover BIKI Online Service Center</h2>
 <p>আমাদের সমস্ত পরিষেবা সম্পর্কে ভিডিওটি দেখুন</p>
-<div class="biki-video-frame"><video id="bikiPromoPlayer" autoplay muted loop playsinline controls preload="metadata" aria-label="BIKI promotional video"><source src="biki-promo.mp4" type="video/mp4">Your browser does not support video playback.</video></div>
+<div class="biki-video-frame"><video id="bikiPromoPlayer" autoplay loop playsinline controls preload="metadata" aria-label="BIKI promotional video"><source src="biki-promo.mp4" type="video/mp4">Your browser does not support video playback.</video></div>
 <p class="biki-video-note">HD Video · Auto Play · Sound Control</p>
 </section>
 <script>
-(function(){const v=document.getElementById('bikiPromoPlayer'), home=document.getElementById('bikiPublicHome');if(!v||!home)return;let visible=null;function sync(){const next=home.getClientRects().length>0;if(next===visible)return;visible=next;if(next){v.muted=true;v.play().catch(()=>{});}else v.pause();}new MutationObserver(sync).observe(home,{attributes:true,attributeFilter:['style','class','hidden']});window.addEventListener('pageshow',sync);sync();})();
+(function(){
+ const v=document.getElementById('bikiPromoPlayer'),home=document.getElementById('bikiPublicHome');if(!v||!home)return;
+ let visible=null,waiting=false,manualMute=false,internalMute=false,attempt=0;
+ function setMute(value){internalMute=true;v.muted=value;internalMute=false;}
+ function start(){const token=++attempt;waiting=false;setMute(manualMute);v.play().catch(err=>{if(token!==attempt||!visible||manualMute||err.name!=='NotAllowedError')return;waiting=true;setMute(true);v.play().catch(()=>{});});}
+ v.addEventListener('volumechange',()=>{if(internalMute)return;if(!v.muted&&v.volume>0){manualMute=false;waiting=false;}else if(!waiting){manualMute=true;}});
+ function unlock(e){if(!e.isTrusted||!visible||!waiting||manualMute||v.contains(e.target))return;waiting=false;setMute(false);v.play().catch(()=>{if(!visible||manualMute)return;waiting=true;setMute(true);v.play().catch(()=>{});});}
+ document.addEventListener('click',unlock,true);document.addEventListener('keydown',unlock,true);
+ function sync(){const next=home.getClientRects().length>0;if(next===visible)return;visible=next;if(next)start();else{++attempt;waiting=false;v.pause();}}
+ new MutationObserver(sync).observe(home,{attributes:true,attributeFilter:['style','class','hidden']});window.addEventListener('pageshow',sync);sync();
+})();
 </script>
 
 <section class="biki-photo-showcase" aria-label="Our featured services">
