@@ -1937,4 +1937,57 @@ form.addEventListener('submit',async function(event){
 });
 })();
 </script>
+<style id="biki-live-cloud-meter-css">
+#bikiCloudMeter{background:#f4f8ff;color:#17365d;border:1px solid #c8dcf8;border-radius:12px;padding:14px;margin:10px 0;font-family:inherit;box-shadow:0 3px 12px #1a4b8a12}
+#bikiCloudMeter .biki-meter-head{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:800;font-size:14px}
+#bikiCloudMeter .biki-meter-sub{font-size:12px;color:#516b8e;margin:7px 0}
+#bikiCloudMeter .biki-meter-track{height:11px;border-radius:20px;background:#dce7f5;overflow:hidden;margin:10px 0}
+#bikiCloudMeter .biki-meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#0875e5,#19b88a);transition:width .3s}
+#bikiCloudMeter .biki-meter-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px}
+#bikiCloudMeter .biki-meter-stats strong{display:block;font-size:16px;color:#143b7d}
+#bikiCloudMeter #bikiMeterRefresh{font-size:12px!important;width:auto!important;padding:6px 10px!important;border:1px solid #b8cdea!important;border-radius:8px!important;background:#fff!important;color:#164989!important}
+</style>
+<script id="biki-live-cloud-meter-js">
+(function(){
+ 'use strict';
+ const URL='https://kxlzoylmepbvfnacuzgk.supabase.co/functions/v1/biki-cloud-meter';
+ const LIMIT=1073741824;
+ const fmt=(n)=>n>=1073741824?(n/1073741824).toFixed(2)+' GB':(n/1048576).toFixed(2)+' MB';
+ let lastFetch=0,busy=false;
+ function init(){
+  const tools=document.getElementById('bikiCloudTools');
+  if(!tools)return;
+  if(document.getElementById('bikiCloudMeter'))return;
+  const box=document.createElement('section');
+  box.id='bikiCloudMeter';box.setAttribute('aria-label','Live Cloud Storage Meter');
+  box.innerHTML='<div class="biki-meter-head"><span>☁ Cloud Storage — LIVE</span><button type="button" id="bikiMeterRefresh">↻ Refresh</button></div><div class="biki-meter-sub" id="bikiMeterStatus">Refresh চাপলে Cloud থেকে তথ্য আসবে</div><div class="biki-meter-track"><div class="biki-meter-fill" id="bikiMeterFill"></div></div><div class="biki-meter-stats"><div>Used Storage<strong id="bikiMeterUsed">—</strong></div><div>Free Space<strong id="bikiMeterFree">—</strong></div><div>Stored PDF Files<strong id="bikiMeterFiles">—</strong></div><div>Total Limit<strong>1 GB</strong></div></div>';
+  tools.prepend(box);
+  const refresh=box.querySelector('#bikiMeterRefresh');
+  async function load(force){
+   if(busy||(!force&&Date.now()-lastFetch<60000))return;
+   busy=true;refresh.disabled=true;box.querySelector('#bikiMeterStatus').textContent='Cloud থেকে তথ্য আনা হচ্ছে...';
+   try{
+    const resp=await fetch(URL,{method:'GET',cache:'no-store'});
+    if(!resp.ok)throw Error('Cloud server error');
+    const data=await resp.json();
+    if(!Number.isFinite(data.bytes)||!Number.isFinite(data.files))throw Error('Invalid response');
+    const limit=Number(data.limit_bytes)||LIMIT,used=Math.max(0,Number(data.bytes)),free=Math.max(0,limit-used);
+    box.querySelector('#bikiMeterUsed').textContent=fmt(used);
+    box.querySelector('#bikiMeterFree').textContent=fmt(free);
+    box.querySelector('#bikiMeterFiles').textContent=String(data.files);
+    box.querySelector('#bikiMeterFill').style.width=Math.min(100,used/limit*100)+'%';
+    box.querySelector('#bikiMeterStatus').textContent='সর্বশেষ আপডেট: '+new Date().toLocaleString('bn-IN');
+    lastFetch=Date.now();
+   }catch(err){box.querySelector('#bikiMeterStatus').textContent='Live Data আনা যায়নি — Refresh দিয়ে আবার চেষ্টা করুন';}
+   finally{busy=false;refresh.disabled=false;}
+  }
+  refresh.addEventListener('click',()=>load(true));
+  const toggle=document.getElementById('bikiCloudMenuToggle');
+  if(toggle)toggle.addEventListener('click',()=>setTimeout(()=>{if(tools.classList.contains('biki-cloud-open'))load(false)},0));
+  const obs=new MutationObserver(()=>{if(tools.classList.contains('biki-cloud-open'))load(false)});
+  obs.observe(tools,{attributes:true,attributeFilter:['class']});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
 </body></html>
