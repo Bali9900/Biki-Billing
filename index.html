@@ -111,7 +111,7 @@ body.biki-staff-mode #staffManagementPanel{display:none!important}body.biki-staf
 @media(max-width:700px){.top .biki-language-control{gap:2px}.top .biki-lang-label{display:none}.top .biki-language-control select{min-width:90px;width:96px;padding:6px}}
 </style><style>
 .biki-pro-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:15px;margin:16px 0}.biki-pro-box{background:#fff;border:1px solid #dae4f3;border-radius:16px;padding:17px;box-shadow:0 3px 14px #142d4b0a}.biki-pro-box h3{margin:0 0 12px;font-size:16px;color:#15345f}.biki-pro-box input,.biki-pro-box select{width:100%;min-width:0;margin:5px 0 10px;padding:10px;border:1px solid #cbd7e7;border-radius:8px;background:#fff}.biki-pro-box button{margin:4px 5px 4px 0;padding:9px 12px;border:0;border-radius:8px;background:#1759cf;color:#fff;cursor:pointer}.biki-pro-box button.secondary{background:#52677e}.biki-pro-box .muted{font-size:12px;color:#63758e}.biki-pro-box .metric{font-size:22px;font-weight:800;color:#123b7e}.biki-pro-table{width:100%;border-collapse:collapse;font-size:12px}.biki-pro-table td,.biki-pro-table th{padding:8px;border-bottom:1px solid #e6edf6;text-align:left;overflow-wrap:anywhere}.biki-pro-scroll{overflow:auto;max-height:300px}.biki-pro-full{grid-column:1/-1}.biki-pro-box label{font-size:12px;font-weight:700;color:#405675}.biki-pro-box button:disabled{opacity:.5;cursor:not-allowed}@media(max-width:700px){.biki-pro-grid{grid-template-columns:1fr}}
-</style><script>sessionStorage.removeItem('biki_logged_in');sessionStorage.removeItem('biki_active_role');</script>
+</style><script>/* Preserve tab login session on refresh. */</script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -629,6 +629,7 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
   const home=document.getElementById('bikiPublicHome');
   const back=document.getElementById('bikiPublicBack');
   window.bikiPublicOpenBilling=function(){
+    sessionStorage.setItem("biki_view_v1","billing");
     home.hidden=true;
     back.style.display='block';
     const gate=document.getElementById('bikiCloudGate');
@@ -638,10 +639,12 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
     }
   };
   window.bikiPublicShowHome=function(){
+    sessionStorage.setItem("biki_view_v1","public");
     home.hidden=false;
     back.style.display='none';
   };
-  // A fresh visit always starts on the public homepage.
+  if(sessionStorage.getItem("biki_view_v1")==="billing") window.bikiPublicOpenBilling();
+  // A fresh tab defaults to the public homepage.
   // The original Firebase authentication and billing code remain unchanged.
 })();
 </script>
@@ -1525,7 +1528,7 @@ $('pinUnlockForm').onsubmit=e=>{e.preventDefault();if(!bikiIsStaff()&&$('unlockP
 $('usePasswordBtn').onclick=()=>bikiShowLoginMode(false);
 $('pinSettingsForm').onsubmit=e=>{e.preventDefault();const a=$('newLockPin').value,b=$('confirmLockPin').value;if($('pinCurrentPassword').value!==getCredentials().password){alert('Current Login Password ভুল।');return}if(!/^[0-9]{4,6}$/.test(a)||a!==b){alert('৪–৬ সংখ্যার একই PIN দুবার দিন।');return}localStorage.setItem('biki_screen_lock_pin',a);e.target.reset();$('pinStatus').textContent='PIN সেট করা হয়েছে।';alert('Screen Lock PIN saved')};
 $('removePinBtn').onclick=()=>{if($('pinCurrentPassword').value!==getCredentials().password){alert('PIN সরাতে Current Login Password লিখুন।');return}localStorage.removeItem('biki_screen_lock_pin');$('pinSettingsForm').reset();$('pinStatus').textContent='PIN সরানো হয়েছে।';alert('PIN removed')};
-function logout(){sessionStorage.removeItem('biki_active_role');sessionStorage.removeItem('biki_logged_in');sessionStorage.removeItem('biki_last_activity');$('loginOverlay').style.display='grid';$('loginSubtitle').textContent='Admin Login · আপনার হিসাব সুরক্ষিত রাখুন';$('loginPass').value='';bikiPrefillUsername();bikiShowLoginMode(false);}
+function logout(){sessionStorage.removeItem("biki_page_v1");sessionStorage.removeItem('biki_active_role');sessionStorage.removeItem('biki_logged_in');sessionStorage.removeItem('biki_last_activity');$('loginOverlay').style.display='grid';$('loginSubtitle').textContent='Admin Login · আপনার হিসাব সুরক্ষিত রাখুন';$('loginPass').value='';bikiPrefillUsername();bikiShowLoginMode(false);}
 $('credentialsForm').onsubmit=e=>{e.preventDefault();let u=$('newUsername').value.trim(),p=$('newPassword').value;if(!u||p.length<4){alert('Username দিন এবং Password কমপক্ষে ৪ অক্ষরের করুন');return}localStorage.setItem('biki_login_credentials',JSON.stringify({username:u,password:p}));bikiRememberUsername(u);bikiPrefillUsername();e.target.reset();alert('Login details updated. পরেরবার নতুন তথ্য দিয়ে Login করবেন।')}
 
 // Auto-lock after 5 minutes without user activity. Unlock with existing login credentials.
@@ -1616,7 +1619,7 @@ $('removeBackground').onclick=()=>{if(!confirm('Custom Background Image মু�
 loadBusinessSettings();
 bikiApplyAppearance();
 if(sessionStorage.getItem('biki_logged_in')==='yes'){
- bikiCheckInactivity();
+ // PIN module handles inactivity after initialization.
  if(sessionStorage.getItem('biki_logged_in')==='yes'){$('loginOverlay').style.display='none';bikiApplyStaffPermissions();}
 }
 render();bikiRenderStaffAccounts();bikiUpdateRecoveryStatus();
@@ -1817,7 +1820,7 @@ function refresh(){if(!el('businessV2'))return;purchases();orders();tickets();at
 <script id="biki-pin-feature">
 (function(){'use strict';
 const KEY='biki_screen_pin_v1', LOCK='biki_screen_locked_v1', TIMEOUT=300000;
-let lastActive=Date.now(), lastVerify=0, failed=0, busy=false;
+let lastActive=Number(sessionStorage.getItem("biki_last_activity"))||Date.now(), lastVerify=0, failed=0, busy=false;
 const el=id=>document.getElementById(id);
 const isPublic=()=>{const p=el('bikiPublicHome');return !!(p&&!p.hidden)};
 const isDashboard=()=>sessionStorage.getItem('biki_logged_in')==='yes' && !isPublic() && !!document.querySelector('.page.active');
@@ -1833,11 +1836,11 @@ function unlock(){sessionStorage.removeItem(LOCK);el('bikiPinOverlay').hidden=tr
 window.bikiPinLockNow=()=>{if(getRecord())lock();else alert('প্রথমে Settings → Auto Screen Lock & PIN Security থেকে PIN সেট করুন।')};
 function renderSettings(){/* PIN settings panel intentionally removed from Settings; PIN lock/unlock logic preserved. */}
 function init(){renderSettings();el('bikiPinUnlockForm').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;const input=el('bikiPinUnlockInput'),msg=el('bikiPinError');if(Date.now()-lastVerify<1000)return;lastVerify=Date.now();busy=true;try{if(await verify(input.value)){unlock()}else{failed++;msg.textContent='ভুল PIN। আবার চেষ্টা করুন।';input.value='';if(failed>=5){msg.textContent='অনেকবার ভুল PIN দেওয়া হয়েছে। ৩০ সেকেন্ড অপেক্ষা করুন।';input.disabled=true;setTimeout(()=>{input.disabled=false;failed=0;msg.textContent='';input.focus()},30000)}}}catch{msg.textContent='Unlock করা যায়নি'}finally{busy=false}});
-for(const event of ['pointerdown','keydown','touchstart','scroll'])document.addEventListener(event,e=>{if(el('bikiPinOverlay').hidden&&isDashboard()&&e.isTrusted)lastActive=Date.now()},{passive:true});
+for(const event of ['pointerdown','keydown','touchstart','scroll'])document.addEventListener(event,e=>{if(el('bikiPinOverlay').hidden&&isDashboard()&&e.isTrusted){lastActive=Date.now();sessionStorage.setItem("biki_last_activity",String(lastActive));}},{passive:true});
 setInterval(()=>{if(!getRecord()||!isDashboard())return;if(sessionStorage.getItem(LOCK)==='1'){if(el('bikiPinOverlay').hidden)lock();return}if(Date.now()-lastActive>=TIMEOUT)lock()},1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&getRecord()&&isDashboard()&&Date.now()-lastActive>=TIMEOUT)lock()});
 window.addEventListener('pageshow',()=>{if(sessionStorage.getItem(LOCK)==='1'&&isDashboard())lock()});
-if(sessionStorage.getItem(LOCK)==='1'&&isDashboard())lock();
+if(isDashboard()&&(sessionStorage.getItem(LOCK)==='1'||Date.now()-lastActive>=TIMEOUT))lock();
 }
 function start(){
   if(document.getElementById('bikiCloudTools')){init();return;}
@@ -2025,13 +2028,4 @@ form.addEventListener('submit',async function(event){
   obs.observe(tools,{attributes:true,attributeFilter:['class']});
  }
  function start(){
-  if(document.getElementById('bikiCloudTools')){init();return;}
-  const observer=new MutationObserver(()=>{
-    if(document.getElementById('bikiCloudTools')){observer.disconnect();init();}
-  });
-  observer.observe(document.documentElement,{childList:true,subtree:true});
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
-})();
-</script>
-</body></html>
+  if(document.getElementById('bik
