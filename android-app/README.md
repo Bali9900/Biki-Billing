@@ -1,0 +1,3 @@
+# BIKI Billing Android
+A WebView Android app for https://bali9900.github.io/Biki-Billing/. The live website remains unchanged. The app uses existing website authentication and cloud services; Android WebView may have a separate login session and does not guarantee compatibility with popup OAuth, blob downloads, website print scripts or Web Share. The native menu can print the visible page or open Chrome.
+Build with JDK 17, Android SDK 35, Gradle 8.9: `gradle -p android-app :app:assembleDebug`. A debug APK is for testing/sideloading only. Use a stable release signing key for production updates.
