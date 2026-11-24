@@ -79,4 +79,32 @@ function init(){
    await auth();const tickets=(typeof v==='function'?v().tickets:[])||[];let count=0,failed=0;
    for(const t of tickets){if(t.pdfCloudPath||!t.pdfName)continue;
     try{const file=await ticketPdfOperation(t.id,'get');if(!file)continue;t.pdfCloudPath=await upload(t.id,file);count++}
-    catch(e){failed++;console.error('PDF migration',t.id,
+    catch(e){failed++;console.error('PDF migration',t.id,e)}
+   }
+   if(count){persist();if(typeof window.tickets==='function')window.tickets()}
+   alert('Migrated '+count+' PDF(s). Failed '+failed+'. Check another PC after sync.');
+  }catch(e){alert(e.message)}
+ };
+ // IMPORTANT: Never call getUser/getSession from inside onAuthStateChange.
+ // Supabase warns that re-entrant async auth calls can stall authentication.
+ try{
+  sb().auth.onAuthStateChange((event,session)=>{
+   const el=$('pdfCloudStatus');if(!el)return;
+   if(event==='SIGNED_OUT'){
+    el.textContent='Not connected — PDF upload requires Supabase login';
+   }else if(session?.user?.email?.toLowerCase()===OWNER){
+    el.textContent='Connected: '+session.user.email+' (Auto Restore ON)';
+   }else if(event==='INITIAL_SESSION'){
+    el.textContent='Not connected — PDF upload requires Supabase login';
+   }
+  });
+ }catch(e){console.warn('Cloud auth listener:',e)}
+ // Recheck after returning to the tab or restoring the page from cache.
+ window.addEventListener('pageshow',()=>{void status()});
+ document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')void status();
+ });
+ void status();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
