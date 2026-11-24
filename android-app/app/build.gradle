@@ -3,10 +3,10 @@ android {
     namespace 'com.biki.billing'
     compileSdk 35
     defaultConfig {
-        applicationId 'com.biki.billing.pro'
+        applicationId (project.hasProperty('sideBySide') ? 'com.biki.billing.pro.v3' : 'com.biki.billing.pro')
         minSdk 23
         targetSdk 34
-        versionCode 3
-        versionName '2.1'
+        versionCode 4
+        versionName '3.0'
     }
 }

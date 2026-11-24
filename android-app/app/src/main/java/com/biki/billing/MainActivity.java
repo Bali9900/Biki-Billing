@@ -58,7 +58,7 @@ public class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(flags);
         FrameLayout root=new FrameLayout(this);
         root.setBackgroundColor(0xFFF1F5FA);
-        web=new WebView(this);web.setBackgroundColor(0xFFF1F5FA);
+        web=new WebView(this);web.setBackgroundColor(0xFFF1F5FA);web.setVisibility(View.INVISIBLE);
         root.addView(web,new FrameLayout.LayoutParams(-1,-1));
         progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
         root.addView(progress,new FrameLayout.LayoutParams(-1,dp(2),Gravity.TOP));
@@ -82,7 +82,7 @@ public class MainActivity extends Activity {
             }
             @Override public void onPageFinished(WebView v,String url){if(inside(Uri.parse(url)))injectV2();}
             @Override public void onReceivedError(WebView v,WebResourceRequest r,WebResourceError e){
-                if(r.isForMainFrame()) { failed=true; new AlertDialog.Builder(MainActivity.this).setTitle("Connection problem").setMessage("Check your internet connection and try again.").setPositiveButton("Retry",(d,w)->v.loadUrl(retryUrl)).setNegativeButton("Close",null).show(); }
+                if(r.isForMainFrame()) { v.setVisibility(View.VISIBLE); failed=true; new AlertDialog.Builder(MainActivity.this).setTitle("Connection problem").setMessage("Check your internet connection and try again.").setPositiveButton("Retry",(d,w)->v.loadUrl(retryUrl)).setNegativeButton("Close",null).show(); }
             }
             @Override public boolean onRenderProcessGone(WebView v,RenderProcessGoneDetail detail){
                 if(Build.VERSION.SDK_INT>=26){
@@ -94,7 +94,7 @@ public class MainActivity extends Activity {
                 return false;
             }
             @Override public void onReceivedSslError(WebView v,SslErrorHandler h,SslError e){
-                h.cancel(); Toast.makeText(MainActivity.this,"Secure connection failed",Toast.LENGTH_LONG).show();
+                h.cancel();v.setVisibility(View.VISIBLE); Toast.makeText(MainActivity.this,"Secure connection failed",Toast.LENGTH_LONG).show();
             }
         });
         web.setWebChromeClient(new WebChromeClient(){
@@ -135,8 +135,8 @@ public class MainActivity extends Activity {
     private void injectV2(){
         try(InputStream in=getAssets().open("native-v2.js");ByteArrayOutputStream out=new ByteArrayOutputStream()){
             byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
-            web.evaluateJavascript(new String(out.toByteArray(),StandardCharsets.UTF_8),null);
-        }catch(IOException e){Toast.makeText(this,"App theme could not load",Toast.LENGTH_SHORT).show();}
+            web.evaluateJavascript(new String(out.toByteArray(),StandardCharsets.UTF_8),result->{if(web!=null)web.setVisibility(View.VISIBLE);});
+        }catch(IOException e){if(web!=null)web.setVisibility(View.VISIBLE);Toast.makeText(this,"App theme could not load",Toast.LENGTH_SHORT).show();}
     }
     private boolean nativeAction(Uri u){
         if(!"bikiapp".equals(u.getScheme()))return false;
