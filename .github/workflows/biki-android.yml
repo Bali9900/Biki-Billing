@@ -47,12 +47,14 @@ jobs:
             cp favicon.png android-app/app/src/main/res/drawable-nodpi/biki_icon.png
             rm android-app/app/src/main/res/drawable/biki_icon.xml
           fi
+      - name: Check app UI JavaScript syntax
+        run: node --check android-app/app/src/main/assets/native-v2.js
       - name: Build debug APK
         run: gradle -p android-app :app:assembleDebug --no-daemon
       - name: Prepare APK
-        run: cp android-app/app/build/outputs/apk/debug/app-debug.apk BIKI-Billing-v2.0.apk
+        run: cp android-app/app/build/outputs/apk/debug/app-debug.apk BIKI-Billing-v2.1.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: BIKI-Billing-PRO-V2
-          path: BIKI-Billing-v2.0.apk
+          name: BIKI-Billing-PRO-V2-1
+          path: BIKI-Billing-v2.1.apk
           if-no-files-found: error

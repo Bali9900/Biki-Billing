@@ -47,22 +47,22 @@ public class MainActivity extends Activity {
     }
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        try { startApp(state); } catch(RuntimeException e) { android.util.Log.e("BIKI", "Startup failed",e); showStartupError(e); }
+    }
+    private void startApp(Bundle state) {
+        // Let Android fit system bars once; no early insets controller access.
         getWindow().setStatusBarColor(0xFF102951);
-        getWindow().setNavigationBarColor(0xFF102951);
-        if(Build.VERSION.SDK_INT>=29){getWindow().setStatusBarContrastEnforced(false);getWindow().setNavigationBarContrastEnforced(false);}
-        if(Build.VERSION.SDK_INT>=30){getWindow().setDecorFitsSystemWindows(false);getWindow().getInsetsController().setSystemBarsAppearance(0,WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS|WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);}
-        else getWindow().getDecorView().setSystemUiVisibility(0);
-        FrameLayout root=new FrameLayout(this);root.setBackgroundColor(0xFF102951);
-        if(Build.VERSION.SDK_INT>=30)root.setOnApplyWindowInsetsListener((v,i)->{
-            android.graphics.Insets bars=i.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());
-            android.graphics.Insets ime=i.getInsets(WindowInsets.Type.ime());
-            v.setPadding(bars.left,bars.top,bars.right,Math.max(bars.bottom,ime.bottom));return i;
-        });
+        getWindow().setNavigationBarColor(0xFFFFFFFF);
+        int flags=0;
+        if(Build.VERSION.SDK_INT>=26)flags|=View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        getWindow().getDecorView().setSystemUiVisibility(flags);
+        FrameLayout root=new FrameLayout(this);
+        root.setBackgroundColor(0xFFF1F5FA);
         web=new WebView(this);web.setBackgroundColor(0xFFF1F5FA);
         root.addView(web,new FrameLayout.LayoutParams(-1,-1));
         progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
         root.addView(progress,new FrameLayout.LayoutParams(-1,dp(2),Gravity.TOP));
-        setContentView(root);root.requestApplyInsets();
+        setContentView(root);
         WebSettings s=web.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false); s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         s.setSupportMultipleWindows(false); s.setJavaScriptCanOpenWindowsAutomatically(false);
@@ -83,6 +83,15 @@ public class MainActivity extends Activity {
             @Override public void onPageFinished(WebView v,String url){if(inside(Uri.parse(url)))injectV2();}
             @Override public void onReceivedError(WebView v,WebResourceRequest r,WebResourceError e){
                 if(r.isForMainFrame()) { failed=true; new AlertDialog.Builder(MainActivity.this).setTitle("Connection problem").setMessage("Check your internet connection and try again.").setPositiveButton("Retry",(d,w)->v.loadUrl(retryUrl)).setNegativeButton("Close",null).show(); }
+            }
+            @Override public boolean onRenderProcessGone(WebView v,RenderProcessGoneDetail detail){
+                if(Build.VERSION.SDK_INT>=26){
+                    android.util.Log.e("BIKI","WebView renderer stopped; crashed="+detail.didCrash());
+                    if(v.getParent() instanceof android.view.ViewGroup)((android.view.ViewGroup)v.getParent()).removeView(v);
+                    v.destroy();web=null;
+                    showStartupError(new IllegalStateException("WebView renderer stopped"));return true;
+                }
+                return false;
             }
             @Override public void onReceivedSslError(WebView v,SslErrorHandler h,SslError e){
                 h.cancel(); Toast.makeText(MainActivity.this,"Secure connection failed",Toast.LENGTH_LONG).show();
@@ -115,6 +124,14 @@ public class MainActivity extends Activity {
         });
         if(state==null || web.restoreState(state)==null) web.loadUrl(HOME);
     }
+    private void showStartupError(RuntimeException e){
+        LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);panel.setGravity(Gravity.CENTER);panel.setPadding(dp(24),dp(24),dp(24),dp(24));panel.setBackgroundColor(0xFFF1F5FA);
+        TextView title=new TextView(this);title.setText("BIKI Billing PRO");title.setTextColor(0xFF102951);title.setTextSize(24);panel.addView(title);
+        TextView message=new TextView(this);message.setText("App startup could not complete. Update Android System WebView and try again.\n"+e.getClass().getSimpleName());message.setPadding(0,dp(16),0,dp(16));panel.addView(message);
+        Button retry=new Button(this);retry.setText("Retry");retry.setOnClickListener(v->recreate());panel.addView(retry);
+        Button browser=new Button(this);browser.setText("Open website");browser.setOnClickListener(v->external(Uri.parse(HOME)));panel.addView(browser);
+        setContentView(panel);
+    }
     private void injectV2(){
         try(InputStream in=getAssets().open("native-v2.js");ByteArrayOutputStream out=new ByteArrayOutputStream()){
             byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
@@ -134,6 +151,6 @@ public class MainActivity extends Activity {
         super.onActivityResult(request,result,data);
         if(request==PICK && files!=null){files.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result,data)); files=null;}
     }
-    @Override protected void onSaveInstanceState(Bundle out){web.saveState(out);super.onSaveInstanceState(out);}
-    @Override public void onBackPressed(){if(web.canGoBack()) web.goBack();else super.onBackPressed();}
+    @Override protected void onSaveInstanceState(Bundle out){if(web!=null)web.saveState(out);super.onSaveInstanceState(out);}
+    @Override public void onBackPressed(){if(web==null){super.onBackPressed();return;}web.evaluateJavascript("typeof window.__bikiNativeBack==='function' && window.__bikiNativeBack()",result->{if(!"true".equals(result)){if(web!=null&&web.canGoBack())web.goBack();else super.onBackPressed();}});}
 }
