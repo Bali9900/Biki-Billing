@@ -2091,4 +2091,19 @@ form.addEventListener('submit',async function(event){
 <script id="biki-mobile-pro-v3-js">
 (function(){function init(){const app=document.querySelector('.app'),dash=document.getElementById('dashboard');if(!app||!dash||document.querySelector('.biki-mv3-nav'))return;const go=(id)=>{const b=app.querySelector('.nav button[data-page="'+id+'"]');if(b)b.click();app.classList.remove('biki-mv3-open');};const make=(cls,items)=>{const el=document.createElement('div');el.className=cls;items.forEach(([icon,label,id])=>{const b=document.createElement('button');b.type='button';b.innerHTML='<span aria-hidden="true">'+icon+'</span>'+label;b.addEventListener('click',()=>id==='more'?app.classList.toggle('biki-mv3-open'):go(id));el.appendChild(b);});return el;};app.appendChild(make('biki-mv3-nav',[['⌂','Home','dashboard'],['♙','Customer','customers'],['＋','New Sale','sales'],['₹','Due','dues'],['☰','More','more']]));const quick=make('biki-mv3-quick',[['＋','New Sale','sales'],['♙','Customers','customers'],['₹','Due','dues'],['▣','Stock','products'],['↔','Cashbook','transactions'],['▤','Services','services'],['▥','Reports','reports'],['⚙','Settings','settings']]);const stats=dash.querySelector('.stats');if(stats)stats.after(quick);app.querySelector('.nav').addEventListener('click',e=>{if(e.target.closest('button'))app.classList.remove('biki-mv3-open');});}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();})();
 </script>
+
+<style id="biki-mobile-hide-floating-tools">
+/* Mobile V3: keep the bottom navigation unobstructed without disabling sync or alerts. */
+@media screen and (max-width:760px){
+  html body #bikiTelegramPanel,
+  html body #bikiTelegramToggle,
+  html body #bikiTelegramBox,
+  html body #bikiCloudMenuToggle,
+  html body #bikiCloudTools,
+  html body #bikiCloudTools.biki-cloud-compact.biki-cloud-open,
+  html body #bikiCloudStatus {
+    display:none!important;
+  }
+}
+</style>
 </body></html>
