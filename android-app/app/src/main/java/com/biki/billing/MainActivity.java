@@ -12,6 +12,8 @@ import android.print.PrintManager;
 import android.view.*;
 import android.webkit.*;
 import android.widget.*;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
     private static final String HOME = "https://bali9900.github.io/Biki-Billing/";
@@ -45,29 +47,22 @@ public class MainActivity extends Activity {
     }
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(Color.WHITE);
-        root.setOnApplyWindowInsetsListener((v,i)-> {
-            if (Build.VERSION.SDK_INT >= 30) {
-                android.graphics.Insets in = i.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
-                v.setPadding(in.left,in.top,in.right,in.bottom);
-            } else v.setPadding(i.getSystemWindowInsetLeft(),i.getSystemWindowInsetTop(),i.getSystemWindowInsetRight(),i.getSystemWindowInsetBottom());
-            return i;
+        getWindow().setStatusBarColor(0xFF102951);
+        getWindow().setNavigationBarColor(0xFF102951);
+        if(Build.VERSION.SDK_INT>=29){getWindow().setStatusBarContrastEnforced(false);getWindow().setNavigationBarContrastEnforced(false);}
+        if(Build.VERSION.SDK_INT>=30){getWindow().setDecorFitsSystemWindows(false);getWindow().getInsetsController().setSystemBarsAppearance(0,WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS|WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);}
+        else getWindow().getDecorView().setSystemUiVisibility(0);
+        FrameLayout root=new FrameLayout(this);root.setBackgroundColor(0xFF102951);
+        if(Build.VERSION.SDK_INT>=30)root.setOnApplyWindowInsetsListener((v,i)->{
+            android.graphics.Insets bars=i.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());
+            android.graphics.Insets ime=i.getInsets(WindowInsets.Type.ime());
+            v.setPadding(bars.left,bars.top,bars.right,Math.max(bars.bottom,ime.bottom));return i;
         });
-        LinearLayout bar = new LinearLayout(this); bar.setGravity(Gravity.CENTER_VERTICAL); bar.setBackgroundColor(0xFF1247A8);
-        item(bar,"‹","Back",()-> { if(web.canGoBack()) web.goBack(); else web.loadUrl(HOME); });
-        TextView title = new TextView(this); title.setText("BIKI Billing"); title.setTextColor(Color.WHITE); title.setTextSize(17); title.setSingleLine(true);
-        bar.addView(title,new LinearLayout.LayoutParams(0,-2,1));
-        item(bar,"↻","Reload",()-> { if(failed) web.loadUrl(retryUrl); else web.reload(); });
-        item(bar,"⌂","Home",()->web.loadUrl(HOME));
-        item(bar,"⋮","More options",()->new AlertDialog.Builder(this).setItems(new String[]{"Print current page","Open website in Chrome"},(d,n)->{
-            if(n==0) { PrintManager pm=(PrintManager)getSystemService(PRINT_SERVICE); pm.print("BIKI Billing",web.createPrintDocumentAdapter("BIKI Billing"),null); }
-            else external(Uri.parse(HOME));
-        }).show());
-        root.addView(bar);
-        progress = new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
-        root.addView(progress,new LinearLayout.LayoutParams(-1,dp(3)));
-        web = new WebView(this); root.addView(web,new LinearLayout.LayoutParams(-1,0,1));
-        setContentView(root); root.requestApplyInsets();
+        web=new WebView(this);web.setBackgroundColor(0xFFF1F5FA);
+        root.addView(web,new FrameLayout.LayoutParams(-1,-1));
+        progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
+        root.addView(progress,new FrameLayout.LayoutParams(-1,dp(2),Gravity.TOP));
+        setContentView(root);root.requestApplyInsets();
         WebSettings s=web.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false); s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         s.setSupportMultipleWindows(false); s.setJavaScriptCanOpenWindowsAutomatically(false);
@@ -77,14 +72,15 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient(){
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r){
                 if (!r.isForMainFrame()) return false;
-                if (inside(r.getUrl())) return false; external(r.getUrl()); return true;
+                if(nativeAction(r.getUrl()))return true; if (inside(r.getUrl())) return false; external(r.getUrl()); return true;
             }
             @Override public boolean shouldOverrideUrlLoading(WebView v,String url){
-                Uri u=Uri.parse(url); if(inside(u)) return false; external(u); return true;
+                Uri u=Uri.parse(url); if(nativeAction(u))return true; if(inside(u)) return false; external(u); return true;
             }
             @Override public void onPageStarted(WebView v,String url,android.graphics.Bitmap icon){
                 if(inside(Uri.parse(url))) {retryUrl=url; failed=false;} progress.setVisibility(View.VISIBLE);
             }
+            @Override public void onPageFinished(WebView v,String url){if(inside(Uri.parse(url)))injectV2();}
             @Override public void onReceivedError(WebView v,WebResourceRequest r,WebResourceError e){
                 if(r.isForMainFrame()) { failed=true; new AlertDialog.Builder(MainActivity.this).setTitle("Connection problem").setMessage("Check your internet connection and try again.").setPositiveButton("Retry",(d,w)->v.loadUrl(retryUrl)).setNegativeButton("Close",null).show(); }
             }
@@ -103,7 +99,7 @@ public class MainActivity extends Activity {
         web.setDownloadListener((url,ua,cd,mime,len)->{
             Uri u=Uri.parse(url);
             if(!"https".equalsIgnoreCase(u.getScheme())){
-                Toast.makeText(this,"For this file, use Open website in Chrome",Toast.LENGTH_LONG).show(); return;
+                Toast.makeText(this,"For this file, use More > Open in browser",Toast.LENGTH_LONG).show(); return;
             }
             try {
                 DownloadManager.Request req=new DownloadManager.Request(u);
@@ -118,6 +114,21 @@ public class MainActivity extends Activity {
             }catch(Exception e){Toast.makeText(this,"Download failed. Try Chrome.",Toast.LENGTH_LONG).show();}
         });
         if(state==null || web.restoreState(state)==null) web.loadUrl(HOME);
+    }
+    private void injectV2(){
+        try(InputStream in=getAssets().open("native-v2.js");ByteArrayOutputStream out=new ByteArrayOutputStream()){
+            byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
+            web.evaluateJavascript(new String(out.toByteArray(),StandardCharsets.UTF_8),null);
+        }catch(IOException e){Toast.makeText(this,"App theme could not load",Toast.LENGTH_SHORT).show();}
+    }
+    private boolean nativeAction(Uri u){
+        if(!"bikiapp".equals(u.getScheme()))return false;
+        if(web.getUrl()==null||!inside(Uri.parse(web.getUrl())))return true;
+        String action=u.getHost();
+        if("reload".equals(action)){if(failed)web.loadUrl(retryUrl);else web.reload();}
+        else if("browser".equals(action))external(Uri.parse(HOME));
+        else if("print".equals(action)){PrintManager pm=(PrintManager)getSystemService(PRINT_SERVICE);pm.print("BIKI Billing",web.createPrintDocumentAdapter("BIKI Billing"),null);}
+        return true;
     }
     @Override protected void onActivityResult(int request,int result,Intent data){
         super.onActivityResult(request,result,data);
