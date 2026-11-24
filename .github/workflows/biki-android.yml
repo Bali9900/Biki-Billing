@@ -52,15 +52,15 @@ jobs:
       - name: Build debug APK
         run: gradle -p android-app :app:assembleDebug --no-daemon
       - name: Prepare APK
-        run: cp android-app/app/build/outputs/apk/debug/app-debug.apk BIKI-Billing-v3.0.apk
+        run: cp android-app/app/build/outputs/apk/debug/app-debug.apk BIKI-Billing-v3.1.apk
       - name: Build side-by-side APK
         run: |
           gradle -p android-app :app:assembleDebug -PsideBySide --no-daemon
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk BIKI-Billing-v3.0-side-by-side.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk BIKI-Billing-v3.1-side-by-side.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: BIKI-Billing-PRO-V3
+          name: BIKI-Billing-PRO-V3-1
           path: |
-            BIKI-Billing-v3.0.apk
-            BIKI-Billing-v3.0-side-by-side.apk
+            BIKI-Billing-v3.1.apk
+            BIKI-Billing-v3.1-side-by-side.apk
           if-no-files-found: error

@@ -14,6 +14,16 @@ import android.webkit.*;
 import android.widget.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import org.json.JSONObject;
+import android.hardware.biometrics.BiometricPrompt;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
+import java.security.KeyStore;
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
+import android.util.Base64;
 
 public class MainActivity extends Activity {
     private static final String HOME = "https://bali9900.github.io/Biki-Billing/";
@@ -23,6 +33,9 @@ public class MainActivity extends Activity {
     private ValueCallback<Uri[]> files;
     private String retryUrl = HOME;
     private boolean failed = false;
+    private boolean biometricBusy=false;
+    private static final String BIO_KEY="biki_biometric_v1";
+    private static final String BIO_PREF="biki_biometric_private";
     private int dp(int v) { return (int)(v * getResources().getDisplayMetrics().density + .5f); }
     private boolean inside(Uri u) {
         String p = u.getPath();
@@ -135,7 +148,7 @@ public class MainActivity extends Activity {
     private void injectV2(){
         try(InputStream in=getAssets().open("native-v2.js");ByteArrayOutputStream out=new ByteArrayOutputStream()){
             byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
-            web.evaluateJavascript(new String(out.toByteArray(),StandardCharsets.UTF_8),result->{if(web!=null)web.setVisibility(View.VISIBLE);});
+            web.evaluateJavascript(new String(out.toByteArray(),StandardCharsets.UTF_8),result->{if(web!=null)web.setVisibility(View.VISIBLE);refreshBioUi();});
         }catch(IOException e){if(web!=null)web.setVisibility(View.VISIBLE);Toast.makeText(this,"App theme could not load",Toast.LENGTH_SHORT).show();}
     }
     private boolean nativeAction(Uri u){
@@ -144,9 +157,117 @@ public class MainActivity extends Activity {
         String action=u.getHost();
         if("reload".equals(action)){if(failed)web.loadUrl(retryUrl);else web.reload();}
         else if("browser".equals(action))external(Uri.parse(HOME));
+        else if("biometric-settings".equals(action))biometricSettings();
+        else if("biometric-login".equals(action))biometricLogin();
         else if("print".equals(action)){PrintManager pm=(PrintManager)getSystemService(PRINT_SERVICE);pm.print("BIKI Billing",web.createPrintDocumentAdapter("BIKI Billing"),null);}
         return true;
     }
+
+    private boolean safePage(){return web!=null&&web.getUrl()!=null&&inside(Uri.parse(web.getUrl()))&&!isFinishing();}
+    private SharedPreferences bioPrefs(){return getSharedPreferences(BIO_PREF,MODE_PRIVATE);}
+    private boolean bioEnabled(){return bioPrefs().contains("cipher")&&bioPrefs().contains("iv");}
+    private void bioMessage(String message){Toast.makeText(this,message,Toast.LENGTH_LONG).show();}
+    private void refreshBioUi(){
+        if(safePage())web.evaluateJavascript("if(window.__bikiBiometricStatus)window.__bikiBiometricStatus("+bioEnabled()+","+(Build.VERSION.SDK_INT>=28)+")",null);
+    }
+    private void eraseBio(){
+        bioPrefs().edit().clear().apply();
+        try{KeyStore ks=KeyStore.getInstance("AndroidKeyStore");ks.load(null);ks.deleteEntry(BIO_KEY);}catch(Exception ignored){}
+        refreshBioUi();
+    }
+    private void biometricSettings(){
+        if(Build.VERSION.SDK_INT<28){bioMessage("Fingerprint login requires Android 9 or later.");return;}
+        if(bioEnabled()){
+            new AlertDialog.Builder(this).setTitle("Fingerprint login").setMessage("Fingerprint login is enabled on this device.")
+                .setPositiveButton("Done",null).setNegativeButton("Disable",(d,w)->{eraseBio();bioMessage("Fingerprint login disabled.");}).show();return;
+        }
+        if(!safePage())return;
+        web.evaluateJavascript("(function(){try{return sessionStorage.getItem('biki_logged_in')==='yes' && !!firebase.auth().currentUser && document.getElementById('bikiCloudGate').style.display==='none';}catch(e){return false;}})()",result->{
+            if(!"true".equals(result)){bioMessage("Sign in to your Firebase account first.");return;}
+            if(!safePage())return;
+            LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);form.setPadding(dp(20),dp(8),dp(20),0);
+            TextView hint=new TextView(this);hint.setText("Confirm your current Firebase password once. It will be encrypted with Android Keystore and unlocked only after biometric authentication.");form.addView(hint);
+            EditText pass=new EditText(this);pass.setHint("Firebase password");pass.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);form.addView(pass);
+            AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Enable fingerprint login").setView(form).setNegativeButton("Cancel",null).setPositiveButton("Verify",null).create();
+            dialog.setOnShowListener(v->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(b->{
+                String password=pass.getText().toString();if(password.isEmpty()){pass.setError("Enter password");return;}pass.setText("");dialog.dismiss();verifyEnrollment(password);
+            }));dialog.show();
+        });
+    }
+    private void verifyEnrollment(String password){
+        if(!safePage()||biometricBusy)return;biometricBusy=true;
+        String marker=java.util.UUID.randomUUID().toString();
+        String script="(function(){window.__bikiBioVerify={id:"+JSONObject.quote(marker)+",state:'pending'};try{const u=firebase.auth().currentUser;if(!u||!u.email||sessionStorage.getItem('biki_logged_in')!=='yes')throw Error('login required');const email=u.email;u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(email,"+JSONObject.quote(password)+")).then(()=>{window.__bikiBioVerify={id:"+JSONObject.quote(marker)+",state:'ok',email:email};}).catch(()=>{window.__bikiBioVerify={id:"+JSONObject.quote(marker)+",state:'error'};});}catch(e){window.__bikiBioVerify={id:"+JSONObject.quote(marker)+",state:'error'};}})()";
+        web.evaluateJavascript(script,r->pollEnrollment(marker,password,0));
+    }
+    private void pollEnrollment(String marker,String password,int count){
+        if(!safePage()||count>=60){biometricBusy=false;bioMessage("Verification could not finish. Try again.");return;}
+        web.postDelayed(()->{
+            if(!safePage()){biometricBusy=false;return;}
+            web.evaluateJavascript("window.__bikiBioVerify&&window.__bikiBioVerify.id==="+JSONObject.quote(marker)+"?window.__bikiBioVerify:null",result->{
+                try{
+                    JSONObject r=new JSONObject(result);String state=r.optString("state");
+                    if("ok".equals(state)){
+                        String email=r.getString("email");web.evaluateJavascript("delete window.__bikiBioVerify",null);biometricBusy=false;
+                        JSONObject credentials=new JSONObject();credentials.put("email",email);credentials.put("password",password);encryptBiometric(credentials.toString());
+                    }else if("error".equals(state)){biometricBusy=false;web.evaluateJavascript("delete window.__bikiBioVerify",null);bioMessage("Password verification failed. Please check your Firebase password.");}
+                    else pollEnrollment(marker,password,count+1);
+                }catch(Exception e){pollEnrollment(marker,password,count+1);}
+            });
+        },500);
+    }
+    private interface BioSuccess{void done(Cipher cipher)throws Exception;}
+    private void promptBio(Cipher cipher,String title,BioSuccess success){
+        if(Build.VERSION.SDK_INT<28||biometricBusy)return;biometricBusy=true;
+        try{
+            BiometricPrompt.Builder builder=new BiometricPrompt.Builder(this).setTitle(title).setSubtitle("BIKI Billing PRO").setNegativeButton("Cancel",getMainExecutor(),(d,w)->{biometricBusy=false;});
+            if(Build.VERSION.SDK_INT>=30)builder.setAllowedAuthenticators(android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG);
+            BiometricPrompt prompt=builder.build();
+            prompt.authenticate(new BiometricPrompt.CryptoObject(cipher),new CancellationSignal(),getMainExecutor(),new BiometricPrompt.AuthenticationCallback(){
+                @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result){
+                    biometricBusy=false;try{Cipher c=result.getCryptoObject().getCipher();if(c==null)throw new IllegalStateException();success.done(c);}catch(Exception e){bioMessage("Fingerprint operation failed. Use password login.");}
+                }
+                @Override public void onAuthenticationError(int code,CharSequence message){biometricBusy=false;bioMessage(message.toString());}
+                @Override public void onAuthenticationFailed(){bioMessage("Fingerprint not recognized. Try again.");}
+            });
+        }catch(Exception e){biometricBusy=false;bioMessage("Set up a supported fingerprint in Android Settings first.");}
+    }
+    private void encryptBiometric(String credentials){
+        if(Build.VERSION.SDK_INT<28||!safePage())return;
+        try{
+            eraseBio();
+            KeyGenerator kg=KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,"AndroidKeyStore");
+            KeyGenParameterSpec.Builder spec=new KeyGenParameterSpec.Builder(BIO_KEY,KeyProperties.PURPOSE_ENCRYPT|KeyProperties.PURPOSE_DECRYPT)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setUserAuthenticationRequired(true).setInvalidatedByBiometricEnrollment(true);
+            if(Build.VERSION.SDK_INT>=30)spec.setUserAuthenticationParameters(0,KeyProperties.AUTH_BIOMETRIC_STRONG);
+            else spec.setUserAuthenticationValidityDurationSeconds(-1);
+            kg.init(spec.build());SecretKey key=kg.generateKey();
+            Cipher c=Cipher.getInstance("AES/GCM/NoPadding");c.init(Cipher.ENCRYPT_MODE,key);
+            promptBio(c,"Enable fingerprint login",authenticated->{
+                byte[] encrypted=authenticated.doFinal(credentials.getBytes(StandardCharsets.UTF_8));
+                bioPrefs().edit().putString("cipher",Base64.encodeToString(encrypted,Base64.NO_WRAP))
+                    .putString("iv",Base64.encodeToString(authenticated.getIV(),Base64.NO_WRAP)).apply();
+                refreshBioUi();bioMessage("Fingerprint login enabled.");
+            });
+        }catch(Exception e){eraseBio();bioMessage("Fingerprint setup unavailable. Enroll a fingerprint in Android Settings.");}
+    }
+    private void biometricLogin(){
+        if(Build.VERSION.SDK_INT<28||!bioEnabled()||!safePage()){bioMessage("Enable fingerprint login from My Account after signing in.");return;}
+        try{
+            KeyStore ks=KeyStore.getInstance("AndroidKeyStore");ks.load(null);
+            SecretKey key=(SecretKey)ks.getKey(BIO_KEY,null);if(key==null)throw new IllegalStateException();
+            Cipher c=Cipher.getInstance("AES/GCM/NoPadding");c.init(Cipher.DECRYPT_MODE,key,new GCMParameterSpec(128,Base64.decode(bioPrefs().getString("iv",""),Base64.NO_WRAP)));
+            promptBio(c,"Sign in with fingerprint",authenticated->{
+                byte[] plain=authenticated.doFinal(Base64.decode(bioPrefs().getString("cipher",""),Base64.NO_WRAP));
+                JSONObject credentials=new JSONObject(new String(plain,StandardCharsets.UTF_8));java.util.Arrays.fill(plain,(byte)0);
+                if(!safePage())return;
+                String email=JSONObject.quote(credentials.getString("email")),password=JSONObject.quote(credentials.getString("password"));
+                web.evaluateJavascript("(function(){if(typeof window.__bikiFingerprintSubmit==='function')return window.__bikiFingerprintSubmit("+email+","+password+");return false;})()",result->{if(!"true".equals(result))bioMessage("Login page is not ready. Please use password login.");});
+            });
+        }catch(Exception e){eraseBio();bioMessage("Fingerprint security changed. Sign in with password and enable again.");}
+    }
+
     @Override protected void onActivityResult(int request,int result,Intent data){
         super.onActivityResult(request,result,data);
         if(request==PICK && files!=null){files.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result,data)); files=null;}

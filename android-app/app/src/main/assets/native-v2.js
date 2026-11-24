@@ -103,7 +103,7 @@ function open(account){
  if(allowed('settings'))group('Cloud & Backup',[item('Daily Backup','cloud','Download backup','businessPro','proDownloadBackup'),['Cloud Tools','cloud','Firebase sync and backup',()=>tools('cloud')],['Telegram Alerts','sale','Notification settings',()=>tools('telegram')]]);
  }
  group('Settings & Security',[item('Business Profile','user','Name, address, logo','settings','businessName'),['Theme & Display','menu','App theme and background',()=>themeScreen(account)],item('Invoice Designer','sale','Receipt templates','settings','bikiInvoiceDesigner'),item('UPI QR Code','due','Payment settings','settings','upiQrSettings'),item('Staff Management','user','Staff accounts','settings','staffManagementPanel'),item('PIN Settings','lock','Change PIN','settings','pinSettingsForm'),item('All Settings','menu','Language, security and backup','settings')]);
- group('App controls',[['Screen Lock','lock','Lock current session',()=>{close();if(typeof window.bikiManualLock==='function')window.bikiManualLock();}],['Refresh','home','Reload website',()=>action('reload')],['Print current page','sale','Android print service',()=>{close();setTimeout(()=>action('print'),100);}],['Open in browser','home','Use website in Chrome',()=>action('browser')],['Logout','user','Sign out',()=>{close();if(typeof window.logout==='function')window.logout();}]]);
+ group('App controls',[['Fingerprint Login','lock','Enable or disable device biometric login',()=>{close();action('biometric-settings');}],['Screen Lock','lock','Lock current session',()=>{close();if(typeof window.bikiManualLock==='function')window.bikiManualLock();}],['Refresh','home','Reload website',()=>action('reload')],['Print current page','sale','Android print service',()=>{close();setTimeout(()=>action('print'),100);}],['Open in browser','home','Use website in Chrome',()=>action('browser')],['Logout','user','Sign out',()=>{close();if(typeof window.logout==='function')window.logout();}]]);
  search.oninput=()=>{let s=search.value.toLowerCase();more.querySelectorAll('.nvgroup').forEach(g=>{let count=0;g.querySelectorAll('button').forEach(b=>{let ok=b.textContent.toLowerCase().includes(s);b.style.display=ok?'flex':'none';if(ok)count++;});g.style.display=count?'block':'none';});};
  more.classList.add('open');more.scrollTop=0;sync();
 }
@@ -146,5 +146,33 @@ function themeScreen(account){
  let c=d.createElement('div');c.className='nvcard';c.style.marginTop='16px';c.append(btn('Website theme settings ›',()=>go('settings','bikiV2Settings','Website Theme',account?'account':'more')),btn('Custom background ›',()=>go('settings','appearanceSettings','Background',account?'account':'more')));more.append(c);
  more.classList.add('open');more.scrollTop=0;sync();
 }
-sync();setInterval(sync,400);
+
+let bioAvailable=false,bioEnabled=false;
+const bioStart=btn('Sign in with fingerprint',()=>action('biometric-login'));
+bioStart.className='nvwelcome-button';bioStart.hidden=true;
+bioStart.style.cssText='margin-top:12px;background:var(--nv-card);color:var(--nv-text);border:1px solid var(--nv-line)';
+welcome.firstElementChild.append(bioStart);
+const bioCloud=btn('Sign in with fingerprint',()=>action('biometric-login'));
+bioCloud.hidden=true;bioCloud.style.cssText='display:none;width:100%;margin-top:12px;border-radius:12px;padding:13px;background:#eaf1ff;color:#155bd8;font-weight:bold;border:1px solid #cdddf8';
+function attachBioCloud(){let form=by('bikiCloudForm');if(form&&!bioCloud.isConnected)form.after(bioCloud);bioCloud.hidden=!bioEnabled||!bioAvailable;bioCloud.style.display=bioEnabled&&bioAvailable?'block':'none';}
+window.__bikiBiometricStatus=(enabled,available)=>{bioEnabled=enabled;bioAvailable=available;bioStart.hidden=!enabled||!available;bioStart.style.display=enabled&&available?'block':'none';attachBioCloud();};
+window.__bikiFingerprintSubmit=(email,password)=>{
+ if(!bioEnabled||!bioAvailable)return false;
+ if(typeof window.bikiPublicOpenBilling==='function')window.bikiPublicOpenBilling();
+ entering=true;welcome.hidden=true;
+ try{
+  const form=by('bikiCloudForm'),u=by('bikiCloudEmail'),p=by('bikiCloudPassword');
+  if(!form||!u||!p||typeof firebase==='undefined')return false;
+  const current=firebase.auth().currentUser;
+  if(current&&current.email!==email)return false;
+  if(current&&sessionStorage.getItem('biki_logged_in')==='yes'&&!visible(by('bikiCloudGate')))return true;
+  u.value=email;p.value=password;
+  form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+  setTimeout(()=>{if(p.value===password)p.value='';},1500);
+  return true;
+ }catch(e){return false;}
+};
+attachBioCloud();
+
+sync();setInterval(()=>{sync();attachBioCloud();},400);
 })();
