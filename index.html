@@ -1154,7 +1154,32 @@ $('saveBillBtn').onclick=()=>{
   const outstanding=bikiRoundMoney(Math.max(0,dueAmount-previousPayments));
   Object.assign(d,{name:customer,phone:s.phone||'',date:d.date||s.date||bikiLocalToday(),amount:outstanding,receiptNo:s.receiptNo,saleId:s.id,note:'Receipt '+s.receiptNo});s.dueId=d.id;
  }else if(s.dueId){const paidLater=(data.proV2?.payments||[]).some(p=>p.dueId===s.dueId);if(paidLater){alert('এই Receipt-এর Due Payment History আছে। Modify করার আগে Payment History যাচাই করুন।');return;}data.dues=data.dues.filter(x=>x.id!==s.dueId);s.dueId=null}
- save();bikiSaleVoiceSpeak(total,!!old);window.bikiTelegramAlert?.enqueue({type:s.items?.every(i=>i.type==='service')?'service':'sale',customer:s.customer,service:s.productName,amount:s.total,payment_mode:s.mode,reference:s.receiptNo},'invoice:'+s.id);resetBill();$('billStatus').textContent='Bill '+s.receiptNo+' Saved! Sales History থেকে Print করুন।';
+ 
+{
+  const phone = String(s.phone || '').replace(/\D/g, '');
+  const name = String(s.customer || '').trim().replace(/\s+/g, ' ');
+  const generic = /^(cash customer|walk[- ]?in( customer)?|customer|unknown|n\/?a)$/i;
+
+  if (/^\d{10}$/.test(phone) && name && !generic.test(name)) {
+    data.customers = Array.isArray(data.customers) ? data.customers : [];
+
+    const normalizePhone = value => {
+      let p = String(value || '').replace(/\D/g, '');
+      if (p.length === 12 && p.startsWith('91')) p = p.slice(2);
+      if (p.length === 11 && p.startsWith('0')) p = p.slice(1);
+      return p;
+    };
+
+    const existing = data.customers.find(c => normalizePhone(c.phone) === phone);
+
+    if (!existing) {
+      data.customers.push({ id: id(), name, phone, address: '' });
+    } else if (!String(existing.name || '').trim() || generic.test(existing.name)) {
+      existing.name = name;
+    }
+  }
+}
+save();bikiSaleVoiceSpeak(total,!!old);window.bikiTelegramAlert?.enqueue({type:s.items?.every(i=>i.type==='service')?'service':'sale',customer:s.customer,service:s.productName,amount:s.total,payment_mode:s.mode,reference:s.receiptNo},'invoice:'+s.id);resetBill();$('billStatus').textContent='Bill '+s.receiptNo+' Saved! Sales History থেকে Print করুন।';
  /* Non-blocking confirmation: browser alert used to interrupt speech. */
  $('billStatus').textContent='✓ Receipt '+s.receiptNo+' Saved! Total '+money(total)+' · Paid '+money(paid)+' · Due '+money(dueAmount)+' — Sales History থেকে Print করুন।';
  const waStatus=document.getElementById('bikiBillWhatsAppLink');
