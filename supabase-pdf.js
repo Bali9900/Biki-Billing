@@ -30,14 +30,28 @@ window.bikiPdfCloud={upload,download,remove,getSession:async()=>{const {data,err
 function init(){
  const $=id=>document.getElementById(id);
  if(!$('pdfCloudLogin'))return;
+ // A page update must not sign the PDF Cloud out. Check the saved session
+ // separately from the auth event callback to avoid re-entrant auth calls.
  const status=async()=>{
+  const el=$('pdfCloudStatus');if(!el)return;
   try{
+   const {data:stored,error:sessionError}=await sb().auth.getSession();
+   if(sessionError)throw sessionError;
+   if(!stored?.session){
+    el.textContent='Not connected — PDF upload requires Supabase login';
+    return;
+   }
    const {data,error}=await sb().auth.getUser();
-   const el=$('pdfCloudStatus');if(!el)return;
-   if(data?.user?.email?.toLowerCase()===OWNER){el.textContent='Connected: '+data.user.email+' (Auto Restore ON)';}
-   else if(error && !navigator.onLine){el.textContent='Offline — saved session will be checked when internet returns';}
-   else{el.textContent='Not connected — PDF upload requires Supabase login';}
-  }catch(e){if($('pdfCloudStatus'))$('pdfCloudStatus').textContent='Cloud status: '+e.message;}
+   if(error||!data?.user){
+    el.textContent=navigator.onLine
+     ? 'PDF Cloud session could not be verified — reconnect if this continues'
+     : 'Offline — saved PDF Cloud session will be checked when internet returns';
+    return;
+   }
+   el.textContent=data.user.email?.toLowerCase()===OWNER
+    ? 'Connected: '+data.user.email+' (Auto Restore ON)'
+    : 'PDF Cloud account is not authorized';
+  }catch(e){el.textContent='Cloud status check failed — '+e.message;}
  };
  $('pdfCloudLogin').onclick=async()=>{
   try{
@@ -65,14 +79,4 @@ function init(){
    await auth();const tickets=(typeof v==='function'?v().tickets:[])||[];let count=0,failed=0;
    for(const t of tickets){if(t.pdfCloudPath||!t.pdfName)continue;
     try{const file=await ticketPdfOperation(t.id,'get');if(!file)continue;t.pdfCloudPath=await upload(t.id,file);count++}
-    catch(e){failed++;console.error('PDF migration',t.id,e)}
-   }
-   if(count){persist();if(typeof window.tickets==='function')window.tickets()}
-   alert('Migrated '+count+' PDF(s). Failed '+failed+'. Check another PC after sync.');
-  }catch(e){alert(e.message)}
- };
- try{sb().auth.onAuthStateChange(()=>{void status()})}catch(e){console.warn('Cloud auth listener:',e)}
- void status();
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
+    catch(e){failed++;console.error('PDF migration',t.id,
