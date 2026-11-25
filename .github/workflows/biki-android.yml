@@ -61,7 +61,7 @@ jobs:
           set -euo pipefail
           if [ -z "$KEYSTORE_B64" ] || [ -z "$BIKI_RELEASE_STORE_PASSWORD" ] || [ -z "$BIKI_RELEASE_KEY_ALIAS" ] || [ -z "$BIKI_RELEASE_KEY_PASSWORD" ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Release signing is not configured. Compile validation only; no installable APK will be published." >> "$GITHUB_STEP_SUMMARY"
+            echo "Release signing is not configured. A debug-signed test APK will be published; update compatibility is not guaranteed." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           umask 077
@@ -104,6 +104,17 @@ jobs:
         with:
           name: BIKI-Billing-PRO-V3-4-1-Signed
           path: release-output/
+          if-no-files-found: error
+      - name: Build test APK
+        if: steps.signing.outputs.ready != 'true'
+        run: |
+          gradle -p android-app :app:assembleDebug --no-daemon
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk BIKI-Billing-v3.4.1-TEST.apk
+      - uses: actions/upload-artifact@v4
+        if: steps.signing.outputs.ready != 'true'
+        with:
+          name: BIKI-Billing-V3-4-1-TEST
+          path: BIKI-Billing-v3.4.1-TEST.apk
           if-no-files-found: error
       - name: Remove temporary signing key
         if: always()
