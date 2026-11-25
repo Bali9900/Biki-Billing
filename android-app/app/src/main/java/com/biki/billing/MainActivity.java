@@ -183,24 +183,56 @@ public class MainActivity extends Activity {
         try{KeyStore ks=KeyStore.getInstance("AndroidKeyStore");ks.load(null);ks.deleteEntry(BIO_KEY);}catch(Exception ignored){}
         refreshBioUi();
     }
+    private android.graphics.drawable.GradientDrawable securityShape(int color,int radius,int border){
+        android.graphics.drawable.GradientDrawable bg=new android.graphics.drawable.GradientDrawable();
+        bg.setColor(color);bg.setCornerRadius(dp(radius));if(border!=0)bg.setStroke(dp(1),border);return bg;
+    }
+    private TextView securityText(String value,int size,int color,boolean bold){
+        TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(color);
+        if(bold)t.setTypeface(android.graphics.Typeface.DEFAULT,android.graphics.Typeface.BOLD);return t;
+    }
     private void biometricSettings(){
         if(Build.VERSION.SDK_INT<28){bioMessage("Fingerprint login requires Android 9 or later.");return;}
-        if(bioEnabled()){
-            new AlertDialog.Builder(this).setTitle("Fingerprint login").setMessage("Fingerprint login is enabled on this device.")
-                .setPositiveButton("Done",null).setNeutralButton("Test fingerprint",(d,w)->testBiometric()).setNegativeButton("Disable",(d,w)->{eraseBio();bioMessage("Fingerprint login disabled.");}).show();return;
-        }
         if(!safePage())return;
         web.evaluateJavascript("(function(){try{return sessionStorage.getItem('biki_logged_in')==='yes' && !!firebase.auth().currentUser && document.getElementById('bikiCloudGate').style.display==='none';}catch(e){return false;}})()",result->{
             if(!"true".equals(result)){bioMessage("Sign in to your Firebase account first.");return;}
-            if(!safePage())return;
-            LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);form.setPadding(dp(20),dp(8),dp(20),0);
-            TextView hint=new TextView(this);hint.setText("Confirm your current Firebase password once. It will be encrypted with Android Keystore and unlocked only after biometric authentication.");form.addView(hint);
-            EditText pass=new EditText(this);pass.setHint("Firebase password");pass.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);pass.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());pass.setSingleLine(true);pass.setTypeface(android.graphics.Typeface.DEFAULT);pass.setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);form.addView(pass); CheckBox reveal=new CheckBox(this);reveal.setText("Show password");reveal.setOnCheckedChangeListener((button,checked)->{pass.setTransformationMethod(checked?null:android.text.method.PasswordTransformationMethod.getInstance());pass.setSelection(pass.length());});form.addView(reveal); TextView security=new TextView(this);security.setText("Android Keystore • Encrypted credentials\nFingerprint data stays on your device");security.setTextColor(Color.rgb(30,90,150));security.setPadding(0,dp(16),0,dp(12));form.addView(security);
-            AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Enable fingerprint login").setView(form).setNegativeButton("Cancel",null).setPositiveButton("Verify",null).create();
-            dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);dialog.setOnDismissListener(v->pass.setText(""));dialog.setOnShowListener(v->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(b->{
-                String password=pass.getText().toString();if(password.isEmpty()){pass.setError("Enter password");return;}pass.setText("");dialog.dismiss();verifyEnrollment(password);
-            }));dialog.show();
+            if(safePage())showSecurityPage();
         });
+    }
+    private void showSecurityPage(){
+        final int navy=0xff102951,blue=0xff155bd8,muted=0xff64748b,ink=0xff17253b;
+        final boolean enabled=bioEnabled();
+        final android.app.Dialog dialog=new android.app.Dialog(this,android.R.style.Theme_Material_Light_NoActionBar);
+        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(0xfff1f5fa);
+        LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);header.setBackgroundColor(navy);header.setPadding(dp(12),0,dp(16),0);
+        TextView back=securityText("‹",32,Color.WHITE,true);back.setGravity(Gravity.CENTER);back.setContentDescription("Back to settings");header.addView(back,new LinearLayout.LayoutParams(dp(42),dp(56)));back.setOnClickListener(v->dialog.dismiss());
+        header.addView(securityText("Security Settings",18,Color.WHITE,true),new LinearLayout.LayoutParams(0,-2,1));
+        header.addView(securityText("◇",22,Color.WHITE,true));root.addView(header,new LinearLayout.LayoutParams(-1,dp(56)));
+        ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(dp(20),dp(26),dp(20),dp(24));scroll.addView(body);
+        View fingerprint=new View(this){@Override protected void onDraw(android.graphics.Canvas c){super.onDraw(c);android.graphics.Paint p=new android.graphics.Paint(3);p.setColor(blue);p.setStyle(android.graphics.Paint.Style.STROKE);p.setStrokeWidth(dp(2));p.setStrokeCap(android.graphics.Paint.Cap.ROUND);float x=getWidth()/2f,y=getHeight()/2f;for(int r=8;r<=24;r+=5){float z=dp(r);c.drawArc(x-z,y-z,x+z,y+z,190,220,false,p);}c.drawLine(x,y,x-dp(3),y+dp(19),p);}};
+        fingerprint.setBackground(securityShape(0xffdce8ff,48,0));fingerprint.setContentDescription("Fingerprint");LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(dp(88),dp(88));fp.gravity=Gravity.CENTER;body.addView(fingerprint,fp);
+        TextView title=securityText("Fingerprint Login",22,ink,true);title.setGravity(Gravity.CENTER);title.setPadding(0,dp(12),0,0);body.addView(title);
+        TextView subtitle=securityText("Secure your business account with biometric authentication.",14,muted,false);subtitle.setGravity(Gravity.CENTER);subtitle.setPadding(0,dp(8),0,dp(10));body.addView(subtitle);
+        TextView status=securityText(enabled?"Enabled":"Not Enabled",12,enabled?0xff167344:0xff9a421b,true);status.setPadding(dp(10),dp(4),dp(10),dp(4));status.setBackground(securityShape(enabled?0xffd9f4e4:0xfff6dfd3,16,0));LinearLayout.LayoutParams st=new LinearLayout.LayoutParams(-2,-2);st.gravity=Gravity.CENTER;body.addView(status,st);
+        LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(16),dp(18),dp(16),dp(18));card.setBackground(securityShape(Color.WHITE,18,0));LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.topMargin=dp(18);body.addView(card,cp);
+        card.addView(securityText(enabled?"Fingerprint is enabled":"Verify your identity",17,ink,true));
+        TextView hint=securityText(enabled?"Manage biometric access on this device.":"Enter your Firebase password to continue.",14,muted,false);hint.setPadding(0,dp(12),0,dp(14));card.addView(hint);
+        EditText pass=new EditText(this);
+        if(!enabled){
+            card.addView(securityText("Firebase Password",14,muted,true));
+            LinearLayout field=new LinearLayout(this);field.setGravity(Gravity.CENTER_VERTICAL);field.setPadding(dp(10),0,dp(6),0);field.setBackground(securityShape(Color.WHITE,12,0xffdce1e8));LinearLayout.LayoutParams fl=new LinearLayout.LayoutParams(-1,dp(54));fl.topMargin=dp(10);card.addView(field,fl);
+            pass.setHint("Enter password");pass.setTextColor(ink);pass.setTextSize(16);pass.setSingleLine(true);pass.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);pass.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());pass.setTypeface(android.graphics.Typeface.DEFAULT);pass.setBackgroundColor(Color.TRANSPARENT);pass.setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);field.addView(pass,new LinearLayout.LayoutParams(0,-1,1));
+            View eye=new View(this){@Override protected void onDraw(android.graphics.Canvas c){android.graphics.Paint p=new android.graphics.Paint(3);p.setColor(muted);p.setStyle(android.graphics.Paint.Style.STROKE);p.setStrokeWidth(dp(1));float x=getWidth()/2f,y=getHeight()/2f;c.drawOval(x-dp(10),y-dp(6),x+dp(10),y+dp(6),p);c.drawCircle(x,y,dp(3),p);if(pass.getTransformationMethod()==null)c.drawLine(x-dp(11),y+dp(9),x+dp(11),y-dp(9),p);}};eye.setContentDescription("Show password");field.addView(eye,new LinearLayout.LayoutParams(dp(44),-1));eye.setOnClickListener(v->{boolean reveal=pass.getTransformationMethod()!=null;pass.setTransformationMethod(reveal?null:android.text.method.PasswordTransformationMethod.getInstance());pass.setSelection(pass.length());eye.setContentDescription(reveal?"Hide password":"Show password");eye.invalidate();});
+        }
+        TextView security=securityText("✓  Protected by Android Keystore",14,0xff167344,false);security.setPadding(0,dp(16),0,dp(16));card.addView(security);
+        Button verify=new Button(this);verify.setAllCaps(false);verify.setText(enabled?"Test Fingerprint":"Verify & Enable Fingerprint");verify.setTextColor(Color.WHITE);verify.setTextSize(15);verify.setTypeface(android.graphics.Typeface.DEFAULT,android.graphics.Typeface.BOLD);verify.setBackground(securityShape(blue,12,0));card.addView(verify,new LinearLayout.LayoutParams(-1,dp(52)));
+        verify.setOnClickListener(v->{if(enabled){dialog.dismiss();testBiometric();return;}String password=pass.getText().toString();if(password.isEmpty()){pass.setError("Enter password");return;}pass.setText("");dialog.dismiss();verifyEnrollment(password);});
+        if(enabled){Button disable=new Button(this);disable.setAllCaps(false);disable.setText("Disable fingerprint login");disable.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Disable fingerprint login?").setNegativeButton("Cancel",null).setPositiveButton("Disable",(d,w)->{eraseBio();dialog.dismiss();showSecurityPage();}).show());card.addView(disable);}
+        TextView foot=securityText("Fingerprint data stays on your device.",12,muted,false);foot.setGravity(Gravity.CENTER);foot.setPadding(0,dp(18),0,0);body.addView(foot);
+        dialog.setContentView(root);dialog.setOnDismissListener(v->pass.setText(""));dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE|WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);dialog.show();
+        dialog.getWindow().setLayout(-1,-1);
+        if(Build.VERSION.SDK_INT>=35){root.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()|WindowInsets.Type.ime());v.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});root.requestApplyInsets();}
     }
     private void verifyEnrollment(String password){
         if(!safePage()||biometricBusy)return;biometricBusy=true;
