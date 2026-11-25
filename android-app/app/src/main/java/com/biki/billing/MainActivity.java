@@ -76,6 +76,14 @@ public class MainActivity extends Activity {
         progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
         root.addView(progress,new FrameLayout.LayoutParams(-1,dp(2),Gravity.TOP));
         setContentView(root);
+        if(Build.VERSION.SDK_INT>=35){
+            root.setOnApplyWindowInsetsListener((v,insets)->{
+                android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());
+                v.setPadding(bars.left,bars.top,bars.right,bars.bottom);
+                return insets;
+            });
+            root.requestApplyInsets();
+        }
         WebSettings s=web.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false); s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         s.setSupportMultipleWindows(false); s.setJavaScriptCanOpenWindowsAutomatically(false);
@@ -283,5 +291,5 @@ public class MainActivity extends Activity {
         if(request==PICK && files!=null){files.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result,data)); files=null;}
     }
     @Override protected void onSaveInstanceState(Bundle out){if(web!=null)web.saveState(out);super.onSaveInstanceState(out);}
-    @Override public void onBackPressed(){if(web==null){super.onBackPressed();return;}web.evaluateJavascript("typeof window.__bikiNativeBack==='function' && window.__bikiNativeBack()",result->{if(!"true".equals(result)){if(web!=null&&web.canGoBack())web.goBack();else super.onBackPressed();}});}
+    @Override public void onBackPressed(){if(web==null){super.onBackPressed();return;}web.evaluateJavascript("typeof window.__bikiNativeBack==='function' && window.__bikiNativeBack()",result->{if(!"true".equals(result)){if(web!=null&&web.canGoBack())web.goBack();else Toast.makeText(this,"Use Home to return to dashboard",Toast.LENGTH_SHORT).show();}});}
 }
