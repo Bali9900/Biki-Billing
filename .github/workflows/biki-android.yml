@@ -1,4 +1,4 @@
-name: BIKI Billing Android APK
+name: BIKI Billing Android Release
 on:
   push:
     branches: [android-app]
@@ -19,7 +19,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.11.1'
       - name: Install Android SDK without legacy tools
         shell: bash
         run: |
@@ -39,7 +39,7 @@ jobs:
           echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
           set +o pipefail
           yes | "$MANAGER" --sdk_root="$SDK" --licenses >/dev/null
-          "$MANAGER" --sdk_root="$SDK" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          "$MANAGER" --sdk_root="$SDK" "platforms;android-35" "platforms;android-36" "build-tools;35.0.0" "build-tools;36.0.0" "platform-tools"
       - name: Use existing shop icon
         run: |
           mkdir -p android-app/app/src/main/res/drawable-nodpi
@@ -49,18 +49,52 @@ jobs:
           fi
       - name: Check app UI JavaScript syntax
         run: node --check android-app/app/src/main/assets/native-v2.js
-      - name: Build debug APK
-        run: gradle -p android-app :app:assembleDebug --no-daemon
-      - name: Prepare APK
-        run: cp android-app/app/build/outputs/apk/debug/app-debug.apk BIKI-Billing-v3.1.apk
-      - name: Build side-by-side APK
+      - name: Check secure signing configuration
+        id: signing
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.BIKI_RELEASE_KEYSTORE_BASE64 }}
+          BIKI_RELEASE_STORE_PASSWORD: ${{ secrets.BIKI_RELEASE_STORE_PASSWORD }}
+          BIKI_RELEASE_KEY_ALIAS: ${{ secrets.BIKI_RELEASE_KEY_ALIAS }}
+          BIKI_RELEASE_KEY_PASSWORD: ${{ secrets.BIKI_RELEASE_KEY_PASSWORD }}
         run: |
-          gradle -p android-app :app:assembleDebug -PsideBySide --no-daemon
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk BIKI-Billing-v3.1-side-by-side.apk
+          set -euo pipefail
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$BIKI_RELEASE_STORE_PASSWORD" ] || [ -z "$BIKI_RELEASE_KEY_ALIAS" ] || [ -z "$BIKI_RELEASE_KEY_PASSWORD" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Release signing is not configured. Compile validation only; no installable APK will be published." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          umask 077
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/biki-release.jks"
+          echo "BIKI_RELEASE_KEYSTORE=$RUNNER_TEMP/biki-release.jks" >> "$GITHUB_ENV"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+      - name: Validate release compilation
+        if: steps.signing.outputs.ready != 'true'
+        run: gradle -p android-app :app:assembleRelease :app:bundleRelease --no-daemon
+      - name: Build signed APK and Play App Bundle
+        if: steps.signing.outputs.ready == 'true'
+        env:
+          BIKI_RELEASE_STORE_PASSWORD: ${{ secrets.BIKI_RELEASE_STORE_PASSWORD }}
+          BIKI_RELEASE_KEY_ALIAS: ${{ secrets.BIKI_RELEASE_KEY_ALIAS }}
+          BIKI_RELEASE_KEY_PASSWORD: ${{ secrets.BIKI_RELEASE_KEY_PASSWORD }}
+        run: gradle -p android-app :app:assembleRelease :app:bundleRelease --no-daemon
+      - name: Verify signed artifacts
+        if: steps.signing.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-output
+          cp android-app/app/build/outputs/apk/release/app-release.apk release-output/BIKI-Billing-v3.2.apk
+          cp android-app/app/build/outputs/bundle/release/app-release.aab release-output/BIKI-Billing-v3.2.aab
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs release-output/BIKI-Billing-v3.2.apk
+          jarsigner -verify release-output/BIKI-Billing-v3.2.aab
+          (cd release-output && sha256sum *.apk *.aab > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
+        if: steps.signing.outputs.ready == 'true'
         with:
-          name: BIKI-Billing-PRO-V3-1
-          path: |
-            BIKI-Billing-v3.1.apk
-            BIKI-Billing-v3.1-side-by-side.apk
+          name: BIKI-Billing-PRO-V3-2-Signed
+          path: release-output/
           if-no-files-found: error
+      - name: Remove temporary signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/biki-release.jks"
