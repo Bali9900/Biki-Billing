@@ -26,7 +26,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import android.util.Base64;
 
 public class MainActivity extends Activity {
-    private static final String HOME = "https://bali9900.github.io/Biki-Billing/";
+    private static final String HOME = "https://bikionlineservicecenter.github.io/";
     private static final int PICK = 44;
     private WebView web;
     private ProgressBar progress;
@@ -38,9 +38,7 @@ public class MainActivity extends Activity {
     private static final String BIO_PREF="biki_biometric_private";
     private int dp(int v) { return (int)(v * getResources().getDisplayMetrics().density + .5f); }
     private boolean inside(Uri u) {
-        String p = u.getPath();
-        return "https".equalsIgnoreCase(u.getScheme()) && "bali9900.github.io".equalsIgnoreCase(u.getHost())
-            && p != null && (p.equals("/Biki-Billing") || p.startsWith("/Biki-Billing/"));
+        return "https".equalsIgnoreCase(u.getScheme()) && "bikionlineservicecenter.github.io".equalsIgnoreCase(u.getHost());
     }
     private void external(Uri u) {
         String s = u.getScheme();
