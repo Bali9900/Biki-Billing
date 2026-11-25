@@ -8,7 +8,7 @@ d.documentElement.classList.add('nativev2');
 const css=d.createElement('style');
 css.textContent=[
 'html.nativev2,html.nativev2 body{margin:0!important;padding:0!important;max-width:100%!important;overflow-x:hidden!important;background:#f1f5fa}',
-'.nativev2 #bikiPublicBack{display:none!important}',
+'.nativev2 #bikiPublicBack,.nativev2 #bikiPublicHome,.nativev2 .nvwelcome{display:none!important}',
 '.nativev2 .app,.nativev2 .app>main{width:100%!important;min-height:100dvh!important;max-width:100%!important;padding-bottom:0!important}',
 '.nativev2 .app .content{padding:14px 13px 78px!important;background:#f1f5fa!important;min-height:calc(100dvh - 64px)!important;max-width:100%!important}',
 '.nativev2 .app .top{position:sticky!important;top:0!important;z-index:80!important;display:flex!important;align-items:center!important;flex-wrap:nowrap!important;gap:9px!important;min-height:64px!important;height:auto!important;padding:10px 13px!important;background:#102951!important;color:white!important;border:0!important;box-shadow:none!important}',
@@ -38,7 +38,7 @@ const btn=(s,fn)=>{let b=d.createElement('button');b.type='button';b.textContent
 const visible=e=>e&&!e.hidden&&getComputedStyle(e).display!=='none';
 const logged=()=>!(by('bikiPublicHome')&&!by('bikiPublicHome').hidden)&&sessionStorage.getItem('biki_logged_in')==='yes'&&!visible(by('loginOverlay'))&&!visible(by('bikiCloudGate'))&&!visible(by('bikiPinOverlay'));
 const allowed=id=>{let b=menu.querySelector('button[data-page="'+id+'"]');return b&&!b.hidden&&b.style.display!=='none'&&!b.disabled;};
-let route=null, lastMenu=null, entering=false;
+let route=null, lastMenu=null, entering=true;
 const defaultScreen={customers:['customerRows','Customers'],dues:['dueRows','Due Management'],products:['productRows','Products & Stock'],ticketBooking:['v2TicketOut','Booking History'],transactions:['txRows','Income & Expense']};
 function clearRoute(){d.querySelectorAll('.nvhide').forEach(x=>x.classList.remove('nvhide'));route=null;}
 function go(id,target,title,from){
@@ -168,14 +168,14 @@ function sync(){
  if(route&&route.id!==activePage?.id)clearRoute();
  const signed=sessionStorage.getItem('biki_logged_in')==='yes';
  const publicHome=by('bikiPublicHome');
+ if(publicHome&&!publicHome.hidden&&typeof window.bikiPublicOpenBilling==='function')window.bikiPublicOpenBilling();
  const publicShown=publicHome&&!publicHome.hidden;
  let ok=logged()&&!publicShown;
  d.documentElement.classList.toggle('nvsub',!!(ok&&activePage&&activePage.id!=='dashboard'||ok&&route&&route.title==='Notifications'));
  let ttl=by('nvScreenTitle');if(ttl){let v=route?.title||({dashboard:'BIKI Billing',sales:'New Sale',customers:'Customers',dues:'Due Management',products:'Products & Stock',transactions:'Income & Expense',services:'Online Services',ticketBooking:'Ticket Booking Register',reports:'Business Reports',businessPro:'Business Pro',settings:'Settings'})[activePage?.id]||'BIKI Billing';if(v==='Home')v='BIKI Billing';if(ttl.textContent!==v)ttl.textContent=v;}
  profile.textContent=d.body.classList.contains('biki-staff-mode')?'ST':'AD';if(nav.offsetHeight)d.documentElement.style.setProperty('--nv-nav-height',nav.offsetHeight+'px');d.querySelectorAll('.nvscreen-tabs button').forEach(b=>b.classList.toggle('selected',!!route&&b.closest('.page')?.id===route.id&&b.dataset.target===(route.target||'')));
- if(signed)welcome.hidden=true;
- else if(!entering)welcome.hidden=false;
- if(!signed&&wasSigned){entering=false;welcome.hidden=false;clearRoute();}
+ welcome.hidden=true;
+ if(!signed&&wasSigned){entering=true;clearRoute();}
  wasSigned=signed;
  applyTheme();
 d.documentElement.classList.toggle('nvlogged',ok);if(!ok){more.classList.remove('open');d.documentElement.classList.remove('nvtelegram');}let active=q('.page.active');nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active',more.classList.contains('open')?b.dataset.page==='more':b.dataset.page===active?.id));[['nvDue','totalDue'],['nvStock','v2LowStock']].forEach(([a,b])=>{let x=by(a),y=by(b);if(x&&y&&x.textContent!==y.textContent)x.textContent=y.textContent;});if(ok){try{nativeDailyStats();}catch(e){console.warn('Daily stats',e);}try{refreshInvoiceDashboard();}catch(e){console.warn('Sales chart',e);}}}
@@ -183,7 +183,7 @@ function backScreen(){
  if(more.classList.contains('open')){if(moreScreen!=='menu'){open(lastMenu==='account');return true;}close();return true;}
  if(d.documentElement.classList.contains('nvtelegram')||by('bikiCloudMenuToggle')?.getAttribute('aria-expanded')==='true'){closeTools();return true;}
  if(logged()&&(q('.page.active')?.id!=='dashboard'||route?.title==='Notifications')){const from=route?.from;go('dashboard');if(from)open(from==='account');return true;}
- if(!logged()&&entering&&sessionStorage.getItem('biki_logged_in')!=='yes'){entering=false;welcome.hidden=false;return true;}
+ if(!logged()&&entering&&sessionStorage.getItem('biki_logged_in')!=='yes'){entering=true;welcome.hidden=true;return true;}
  return true;
 }
 window.__bikiNativeBack=backScreen;
@@ -192,7 +192,7 @@ const welcome=d.createElement('section');welcome.className='nvwelcome';welcome.h
 welcome.innerHTML='<div class="nvwelcome-inner"><img src="./favicon.png" alt="BIKI" onerror="this.style.display=\'none\'"><div class="nvwelcome-title">BIKI Billing <span>PRO</span></div><p>BIKI ONLINE SERVICE CENTER</p><h2>Manage your business</h2><p>Sales, customers, payments and reports — all in one place.</p></div>';
 const start=btn('Continue to secure login',()=>{entering=true;welcome.hidden=true;if(typeof window.bikiPublicOpenBilling==='function')window.bikiPublicOpenBilling();});start.className='nvwelcome-button';welcome.firstElementChild.append(start);
 d.body.append(welcome);
-if(wasSigned&&typeof window.bikiPublicOpenBilling==='function')window.bikiPublicOpenBilling();
+if(typeof window.bikiPublicOpenBilling==='function')window.bikiPublicOpenBilling();
 function applyTheme(){const v=localStorage.getItem('biki_native_theme_v3')||'system';let t=v==='system'?(localStorage.getItem('biki_theme_v2')||'premium'):v;let root=d.documentElement; if(root.dataset.nvtheme!==t)root.dataset.nvtheme=t;const bg=localStorage.getItem('biki_bg_mode')==='image'&&localStorage.getItem('biki_bg_image')?'image':'default';if(root.dataset.nvbackground!==bg)root.dataset.nvbackground=bg;}
 function themeScreen(account){
  closeTools();moreScreen='theme';more.replaceChildren();
