@@ -31,7 +31,7 @@ android {
         applicationId 'com.biki.billing.pro.nativepreview'
         minSdk 23
         targetSdk 36
-        versionCode 18
-        versionName "4.2-dev2"
+        versionCode 19
+        versionName "4.2-design-preview"
     }
 }
