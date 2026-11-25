@@ -62,7 +62,7 @@ function go(id,target,title,from){
 let name=by('topBusinessName');if(name){let title=d.createElement('strong');title.id='nvScreenTitle';title.textContent='BIKI Billing';title.style.cssText='display:block;font-size:18px;color:white;line-height:1.2';name.before(title);}
 let back=btn('‹',()=>backScreen());back.className='nvback';back.setAttribute('aria-label','Back');top.prepend(back);
 let head=d.createElement('div');head.className='nvhead';let bell=btn('♧',()=>go('dashboard','v2NoticeList','Notifications'));bell.setAttribute('aria-label','Notifications');let profile=btn('AD',()=>open(true));head.append(bell,profile);top.appendChild(head);
-let sum=d.createElement('div');sum.className='nvsummary';sum.innerHTML='<small>TODAY’S SALES</small><div class="nvsales" id="nvSales">₹0</div><div class="nvfooter"><div><small>Today’s profit</small><strong id="nvProfit">₹0</strong></div></div>';q('.nvfooter',sum).append(btn('View report ›',()=>go('reports')));
+let sum=d.createElement('div');sum.className='nvsummary';sum.innerHTML='<small>TODAY’S INVOICE SALES</small><div class="nvsales" id="nvSales">₹0</div><div class="nvfooter"><div><small>Today’s net income</small><strong id="nvProfit">₹0</strong><small>Income received: <span id="nvIncome">₹0</span></small></div></div>';q('.nvfooter',sum).append(btn('View report ›',()=>go('reports')));
 let mini=d.createElement('div');mini.className='nvmini';[['Bills today','nvBills','sales'],['Total due','nvDue','dues'],['Low stock','nvStock','products']].forEach(([n,i,p])=>{let b=btn('',()=>go(p));b.innerHTML='<small>'+n+'</small><strong id="'+i+'">0</strong>';mini.append(b);});
 let quick=d.createElement('div');quick.className='nvquick';[['New Sale','plus','sales'],['Ticket Booking','ticket','ticketBooking'],['Expenses','wallet','transactions'],['Due','due','dues'],['Products & Stock','box','products'],['Reports','chart','reports']].forEach(([n,k,p])=>{let b=btn('',()=>go(p,p==='ticketBooking'?'v2TicketCustomer':p==='transactions'?'txForm':null,n));b.innerHTML='<span class="nvicon">'+icon(k)+'</span>'+n;quick.append(b);});
 let label=d.createElement('h3');label.textContent='Quick Actions';label.style.cssText='font-size:16px;margin:12px 0 10px;color:#173454';
@@ -126,6 +126,18 @@ function open(account){
  search.oninput=()=>{let s=search.value.toLowerCase();more.querySelectorAll('.nvgroup').forEach(g=>{let count=0;g.querySelectorAll('button').forEach(b=>{let ok=b.textContent.toLowerCase().includes(s);b.style.display=ok?'flex':'none';if(ok)count++;});g.style.display=count?'block':'none';});};
  more.classList.add('open');more.scrollTop=0;sync();
 }
+function nativeDailyStats(){
+ const fmt=n=>'₹'+n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+ const day=v=>{const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})(?:$|[T ])/);return m?m[1]+'-'+m[2]+'-'+m[3]:'';};
+ const today=typeof bikiLocalToday==='function'?bikiLocalToday():new Date().toLocaleDateString('en-CA');
+ let records;try{records=typeof data!=='undefined'?data:JSON.parse(localStorage.getItem('biki_accounting_v1')||'null');}catch(e){return;}
+ if(!records||!Array.isArray(records.sales)||!Array.isArray(records.transactions))return;
+ const sales=records.sales.filter(x=>day(x.date)===today);
+ const tx=records.transactions.filter(x=>day(x.date)===today);
+ const sum=(xs,key)=>xs.reduce((a,x)=>a+(Number(x[key])||0),0);
+ const values={nvSales:fmt(sum(sales,'total')),nvBills:String(sales.length),nvProfit:fmt(sum(tx.filter(x=>x.kind==='income'),'amount')-sum(tx.filter(x=>x.kind==='expense'),'amount')),nvIncome:fmt(sum(tx.filter(x=>x.kind==='income'),'amount'))};
+ Object.entries(values).forEach(([id,value])=>{const el=by(id);if(el&&el.textContent!==value)el.textContent=value;});
+}
 function sync(){
  let activePage=q('.page.active');
  if(route&&route.id!==activePage?.id)clearRoute();
@@ -141,7 +153,7 @@ function sync(){
  if(!signed&&wasSigned){entering=false;welcome.hidden=false;clearRoute();}
  wasSigned=signed;
  applyTheme();
-d.documentElement.classList.toggle('nvlogged',ok);if(!ok){more.classList.remove('open');d.documentElement.classList.remove('nvtelegram');}let active=q('.page.active');nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active',more.classList.contains('open')?b.dataset.page==='more':b.dataset.page===active?.id));[['nvSales','v2TodaySales'],['nvProfit','netProfit'],['nvBills','v2TodayBills'],['nvDue','totalDue'],['nvStock','v2LowStock']].forEach(([a,b])=>{let x=by(a),y=by(b);if(x&&y&&x.textContent!==y.textContent)x.textContent=y.textContent;});}
+d.documentElement.classList.toggle('nvlogged',ok);if(!ok){more.classList.remove('open');d.documentElement.classList.remove('nvtelegram');}let active=q('.page.active');nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active',more.classList.contains('open')?b.dataset.page==='more':b.dataset.page===active?.id));[['nvDue','totalDue'],['nvStock','v2LowStock']].forEach(([a,b])=>{let x=by(a),y=by(b);if(x&&y&&x.textContent!==y.textContent)x.textContent=y.textContent;});if(ok)nativeDailyStats();}
 function backScreen(){
  if(more.classList.contains('open')){if(moreScreen!=='menu'){open(lastMenu==='account');return true;}close();return true;}
  if(d.documentElement.classList.contains('nvtelegram')||by('bikiCloudMenuToggle')?.getAttribute('aria-expanded')==='true'){closeTools();return true;}
