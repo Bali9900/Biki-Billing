@@ -63,17 +63,21 @@ public class MainActivity extends Activity {
     private void startApp(Bundle state) {
         // Let Android fit system bars once; no early insets controller access.
         getWindow().setStatusBarColor(0xFF102951);
-        getWindow().setNavigationBarColor(0xFFFFFFFF);
+        getWindow().setNavigationBarColor(0xFF102951);
         int flags=0;
-        if(Build.VERSION.SDK_INT>=26)flags|=View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        // Dark system bar backgrounds require light system icons.
         getWindow().getDecorView().setSystemUiVisibility(flags);
         FrameLayout root=new FrameLayout(this);
-        root.setBackgroundColor(0xFFF1F5FA);
+        root.setBackgroundColor(0xFF102951);
         web=new WebView(this);web.setBackgroundColor(0xFFF1F5FA);web.setVisibility(View.INVISIBLE);
         root.addView(web,new FrameLayout.LayoutParams(-1,-1));
         progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);
         root.addView(progress,new FrameLayout.LayoutParams(-1,dp(2),Gravity.TOP));
         setContentView(root);
+        if(Build.VERSION.SDK_INT>=30){
+            WindowInsetsController controller=getWindow().getInsetsController();
+            if(controller!=null)controller.setSystemBarsAppearance(0,WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS|WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+        }
         if(Build.VERSION.SDK_INT>=35){
             root.setOnApplyWindowInsetsListener((v,insets)->{
                 android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());
