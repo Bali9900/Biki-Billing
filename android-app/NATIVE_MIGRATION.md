@@ -1,3 +1,2 @@
-# Native V4.2 migration (development only)
-This isolated branch does not modify the live website or production APK branch.
-Native Android views replace the WebView in this branch. Existing Firebase email/password login and the owner accounting document are used for read-only display. The development build cannot write to Firestore, save sales or due payments, or send alerts. It has no demo balances. A session-only biometric lock is included, not persistent fingerprint enrollment. Debug APK is not an upgrade release; do not uninstall or replace production app with it. Existing package identifier is unchanged; final signing compatibility and all 22 modules must be validated before production release.
+# Native V4.2 development stage 2
+Separate package ID com.biki.billing.pro.nativepreview. Production branch unchanged. Native screens for 22 modules, verified record browsing, search, receipt text sharing, sale and due draft calculations, cash closing and UPI reconciliation drafts. No Firestore writes, no permanent fingerprint enrollment, no production billing or PDF migration. Do not use for actual transactions. Build must pass before APK is available.

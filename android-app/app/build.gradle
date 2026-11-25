@@ -28,10 +28,10 @@ android {
     namespace 'com.biki.billing'
     compileSdk 36
     defaultConfig {
-        applicationId 'com.biki.billing.pro'
+        applicationId 'com.biki.billing.pro.nativepreview'
         minSdk 23
         targetSdk 36
-        versionCode 17
-        versionName "4.2"
+        versionCode 18
+        versionName "4.2-dev2"
     }
 }
