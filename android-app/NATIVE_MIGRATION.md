@@ -1,0 +1,3 @@
+# Native V4.2 migration (development only)
+This isolated branch does not modify the live website or production APK branch.
+Native Android views replace the WebView in this branch. Existing Firebase email/password login and the owner accounting document are used for read-only display. The development build cannot write to Firestore, save sales or due payments, or send alerts. It has no demo balances. A session-only biometric lock is included, not persistent fingerprint enrollment. Debug APK is not an upgrade release; do not uninstall or replace production app with it. Existing package identifier is unchanged; final signing compatibility and all 22 modules must be validated before production release.
