@@ -138,6 +138,23 @@ function nativeDailyStats(){
  const values={nvSales:fmt(sum(sales,'total')),nvBills:String(sales.length),nvProfit:fmt(sum(tx.filter(x=>x.kind==='income'),'amount')-sum(tx.filter(x=>x.kind==='expense'),'amount')),nvIncome:fmt(sum(tx.filter(x=>x.kind==='income'),'amount'))};
  Object.entries(values).forEach(([id,value])=>{const el=by(id);if(el&&el.textContent!==value)el.textContent=value;});
 }
+function invoiceDay(value){const v=String(value||'').trim();const iso=v.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|[T ])/);if(iso)return iso[1]+'-'+iso[2]+'-'+iso[3];const local=v.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);return local?local[3]+'-'+local[2].padStart(2,'0')+'-'+local[1].padStart(2,'0'):'';}
+function invoiceStats(records,today){const days=Array.from({length:7},(_,i)=>{const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-6+i);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');});const sums=days.map(()=>0),counts=days.map(()=>0);for(const sale of records){const i=days.indexOf(invoiceDay(sale.date));if(i<0)continue;const n=Number(sale.total||0);if(Number.isFinite(n))sums[i]+=n;counts[i]++;}return {days,sums,counts};}
+let invoiceSignature='';
+function refreshInvoiceDashboard(){
+ if(!logged())return;
+ let records;try{records=typeof data!=='undefined'&&Array.isArray(data.sales)?data.sales:JSON.parse(localStorage.getItem('biki_accounting_v1')||'{}').sales;}catch(e){return;}
+ if(!Array.isArray(records))return;
+ const now=new Date(),today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+ const {days,sums,counts}=invoiceStats(records,today),format=n=>'₹'+n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+ for(const [id,value] of [['nvSales',format(sums[6])],['nvBills',String(counts[6])]]){const el=by(id);if(el&&el.textContent!==value)el.textContent=value;}
+ const chart=by('v2SalesChart');if(!chart)return;
+ const signature=JSON.stringify([days,sums]);if(signature===invoiceSignature&&chart.dataset.nvInvoiceSignature===signature&&chart.children.length===7)return;
+ const max=Math.max(1,...sums);chart.replaceChildren();chart.style.setProperty('display','flex','important');chart.style.setProperty('align-items','stretch','important');chart.style.setProperty('height','170px','important');
+ days.forEach((day,i)=>{const col=d.createElement('div');col.className='biki-chart-col';col.style.cssText='display:flex;flex:1;min-width:0;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px';col.title=day+': '+format(sums[i]);const amount=d.createElement('span');amount.textContent=Math.round(sums[i]).toLocaleString('en-IN');const bar=d.createElement('div');bar.className='biki-chart-bar';bar.style.cssText='width:75%;max-width:46px;background:#1766eb;border-radius:5px;height:'+Math.max(3,sums[i]/max*105)+'px;flex-shrink:0';const label=d.createElement('small');label.textContent=day.slice(8)+'/'+day.slice(5,7);col.append(amount,bar,label);chart.append(col);});
+ chart.dataset.nvInvoiceSignature=signature;invoiceSignature=signature;
+}
+
 function sync(){
  let activePage=q('.page.active');
  if(route&&route.id!==activePage?.id)clearRoute();
