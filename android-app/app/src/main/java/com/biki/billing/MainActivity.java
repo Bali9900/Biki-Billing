@@ -179,7 +179,7 @@ public class MainActivity extends Activity {
         if(Build.VERSION.SDK_INT<28){bioMessage("Fingerprint login requires Android 9 or later.");return;}
         if(bioEnabled()){
             new AlertDialog.Builder(this).setTitle("Fingerprint login").setMessage("Fingerprint login is enabled on this device.")
-                .setPositiveButton("Done",null).setNegativeButton("Disable",(d,w)->{eraseBio();bioMessage("Fingerprint login disabled.");}).show();return;
+                .setPositiveButton("Done",null).setNeutralButton("Test fingerprint",(d,w)->testBiometric()).setNegativeButton("Disable",(d,w)->{eraseBio();bioMessage("Fingerprint login disabled.");}).show();return;
         }
         if(!safePage())return;
         web.evaluateJavascript("(function(){try{return sessionStorage.getItem('biki_logged_in')==='yes' && !!firebase.auth().currentUser && document.getElementById('bikiCloudGate').style.display==='none';}catch(e){return false;}})()",result->{
@@ -187,9 +187,9 @@ public class MainActivity extends Activity {
             if(!safePage())return;
             LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);form.setPadding(dp(20),dp(8),dp(20),0);
             TextView hint=new TextView(this);hint.setText("Confirm your current Firebase password once. It will be encrypted with Android Keystore and unlocked only after biometric authentication.");form.addView(hint);
-            EditText pass=new EditText(this);pass.setHint("Firebase password");pass.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);pass.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());pass.setSingleLine(true);pass.setTypeface(android.graphics.Typeface.DEFAULT);pass.setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);form.addView(pass);
+            EditText pass=new EditText(this);pass.setHint("Firebase password");pass.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);pass.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());pass.setSingleLine(true);pass.setTypeface(android.graphics.Typeface.DEFAULT);pass.setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);form.addView(pass); CheckBox reveal=new CheckBox(this);reveal.setText("Show password");reveal.setOnCheckedChangeListener((button,checked)->{pass.setTransformationMethod(checked?null:android.text.method.PasswordTransformationMethod.getInstance());pass.setSelection(pass.length());});form.addView(reveal); TextView security=new TextView(this);security.setText("Android Keystore • Encrypted credentials\nFingerprint data stays on your device");security.setTextColor(Color.rgb(30,90,150));security.setPadding(0,dp(16),0,dp(12));form.addView(security);
             AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Enable fingerprint login").setView(form).setNegativeButton("Cancel",null).setPositiveButton("Verify",null).create();
-            dialog.setOnShowListener(v->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(b->{
+            dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);dialog.setOnDismissListener(v->pass.setText(""));dialog.setOnShowListener(v->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(b->{
                 String password=pass.getText().toString();if(password.isEmpty()){pass.setError("Enter password");return;}pass.setText("");dialog.dismiss();verifyEnrollment(password);
             }));dialog.show();
         });
@@ -251,6 +251,16 @@ public class MainActivity extends Activity {
                 refreshBioUi();bioMessage("Fingerprint login enabled.");
             });
         }catch(Exception e){eraseBio();bioMessage("Fingerprint setup unavailable. Enroll a fingerprint in Android Settings.");}
+    }
+    private void testBiometric(){
+        if(Build.VERSION.SDK_INT<28||!bioEnabled()||!safePage())return;
+        try{
+            KeyStore ks=KeyStore.getInstance("AndroidKeyStore");ks.load(null);
+            SecretKey key=(SecretKey)ks.getKey(BIO_KEY,null);
+            Cipher c=Cipher.getInstance("AES/GCM/NoPadding");
+            c.init(Cipher.DECRYPT_MODE,key,new GCMParameterSpec(128,Base64.decode(bioPrefs().getString("iv",""),Base64.NO_WRAP)));
+            promptBio(c,"Test fingerprint",authenticated->{byte[] plain=authenticated.doFinal(Base64.decode(bioPrefs().getString("cipher",""),Base64.NO_WRAP));java.util.Arrays.fill(plain,(byte)0);bioMessage("Fingerprint test successful.");});
+        }catch(Exception e){eraseBio();bioMessage("Security changed. Enable fingerprint again.");}
     }
     private void biometricLogin(){
         if(Build.VERSION.SDK_INT<28||!bioEnabled()||!safePage()){bioMessage("Enable fingerprint login from My Account after signing in.");return;}
