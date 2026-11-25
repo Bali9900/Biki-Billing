@@ -170,7 +170,7 @@ function sync(){
  if(!signed&&wasSigned){entering=false;welcome.hidden=false;clearRoute();}
  wasSigned=signed;
  applyTheme();
-d.documentElement.classList.toggle('nvlogged',ok);if(!ok){more.classList.remove('open');d.documentElement.classList.remove('nvtelegram');}let active=q('.page.active');nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active',more.classList.contains('open')?b.dataset.page==='more':b.dataset.page===active?.id));[['nvDue','totalDue'],['nvStock','v2LowStock']].forEach(([a,b])=>{let x=by(a),y=by(b);if(x&&y&&x.textContent!==y.textContent)x.textContent=y.textContent;});if(ok)nativeDailyStats();}
+d.documentElement.classList.toggle('nvlogged',ok);if(!ok){more.classList.remove('open');d.documentElement.classList.remove('nvtelegram');}let active=q('.page.active');nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active',more.classList.contains('open')?b.dataset.page==='more':b.dataset.page===active?.id));[['nvDue','totalDue'],['nvStock','v2LowStock']].forEach(([a,b])=>{let x=by(a),y=by(b);if(x&&y&&x.textContent!==y.textContent)x.textContent=y.textContent;});if(ok){nativeDailyStats();refreshInvoiceDashboard();}}
 function backScreen(){
  if(more.classList.contains('open')){if(moreScreen!=='menu'){open(lastMenu==='account');return true;}close();return true;}
  if(d.documentElement.classList.contains('nvtelegram')||by('bikiCloudMenuToggle')?.getAttribute('aria-expanded')==='true'){closeTools();return true;}
