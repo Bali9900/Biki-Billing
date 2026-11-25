@@ -1,5 +1,30 @@
 plugins { id 'com.android.application' }
+// Production signing credentials are supplied securely by the release environment.
+def releaseStore = System.getenv('BIKI_RELEASE_KEYSTORE')
+def releaseStorePassword = System.getenv('BIKI_RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = System.getenv('BIKI_RELEASE_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('BIKI_RELEASE_KEY_PASSWORD')
+def hasReleaseSigning = [releaseStore, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null && !it.isEmpty() }
+
 android {
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseStore)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            debuggable false
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
     namespace 'com.biki.billing'
     compileSdk 35
     defaultConfig {
