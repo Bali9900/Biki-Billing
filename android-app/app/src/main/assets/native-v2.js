@@ -1,5 +1,6 @@
 (function(){
 if(window.__bikiAppV2)return;
+if(typeof window.bikiPublicOpenBilling==='function')window.bikiPublicOpenBilling();
 const d=document,app=d.querySelector('.app'),dash=d.getElementById('dashboard'),top=app&&app.querySelector('.top'),menu=app&&app.querySelector('.nav');
 if(!app||!dash||!top||!menu)return;
 window.__bikiAppV2=true;

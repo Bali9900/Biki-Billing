@@ -101,9 +101,9 @@ public class MainActivity extends Activity {
                 Uri u=Uri.parse(url); if(nativeAction(u))return true; if(inside(u)) return false; external(u); return true;
             }
             @Override public void onPageStarted(WebView v,String url,android.graphics.Bitmap icon){
-                if(inside(Uri.parse(url))) {retryUrl=url; failed=false;} progress.setVisibility(View.VISIBLE);
+                if(inside(Uri.parse(url))) {retryUrl=url; failed=false;} v.setVisibility(View.INVISIBLE); progress.setVisibility(View.VISIBLE);
             }
-            @Override public void onPageCommitVisible(WebView v,String url){if(inside(Uri.parse(url)))v.setVisibility(View.VISIBLE);}
+            @Override public void onPageCommitVisible(WebView v,String url){ /* Wait for billing route before revealing WebView. */ }
             @Override public void onPageFinished(WebView v,String url){if(inside(Uri.parse(url)))injectV2();}
             @Override public void onReceivedError(WebView v,WebResourceRequest r,WebResourceError e){
                 if(r.isForMainFrame()) { v.setVisibility(View.VISIBLE); failed=true; new AlertDialog.Builder(MainActivity.this).setTitle("Connection problem").setMessage("Check your internet connection and try again.").setPositiveButton("Retry",(d,w)->v.loadUrl(retryUrl)).setNegativeButton("Close",null).show(); }
@@ -159,8 +159,9 @@ public class MainActivity extends Activity {
     private void injectV2(){
         try(InputStream in=getAssets().open("native-v2.js");ByteArrayOutputStream out=new ByteArrayOutputStream()){
             byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
-            web.evaluateJavascript(new String(out.toByteArray(),StandardCharsets.UTF_8),result->{if(web!=null)web.setVisibility(View.VISIBLE);refreshBioUi();});
-        }catch(IOException e){if(web!=null)web.setVisibility(View.VISIBLE);Toast.makeText(this,"App theme could not load",Toast.LENGTH_SHORT).show();}
+            String guard="(function(){sessionStorage.setItem('biki_view_v1','billing');var s=document.createElement('style');s.textContent='#bikiPublicHome,#bikiPublicBack{display:none!important}';document.head.appendChild(s);function route(){var h=document.getElementById('bikiPublicHome');if(typeof window.bikiPublicOpenBilling==='function')window.bikiPublicOpenBilling();if(h)h.hidden=true;}route();window.bikiPublicShowHome=route;var h=document.getElementById('bikiPublicHome');if(h)new MutationObserver(function(){if(!h.hidden)route();}).observe(h,{attributes:true,attributeFilter:['hidden']});return !!h&&h.hidden;})()";
+            web.evaluateJavascript(guard,ready->{if(!"true".equals(ready)){Toast.makeText(this,"Billing login unavailable. Please retry.",Toast.LENGTH_LONG).show();return;}web.evaluateJavascript(new String(out.toByteArray(),StandardCharsets.UTF_8),result->{refreshBioUi();if(web!=null)web.postVisualStateCallback(42,new WebView.VisualStateCallback(){@Override public void onComplete(long id){if(web!=null)web.setVisibility(View.VISIBLE);}});});});
+        }catch(IOException e){Toast.makeText(this,"App theme could not load",Toast.LENGTH_SHORT).show();}
     }
     private boolean nativeAction(Uri u){
         if(!"bikiapp".equals(u.getScheme()))return false;
