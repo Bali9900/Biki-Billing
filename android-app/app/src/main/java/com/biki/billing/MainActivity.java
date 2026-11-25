@@ -187,7 +187,7 @@ public class MainActivity extends Activity {
             if(!safePage())return;
             LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);form.setPadding(dp(20),dp(8),dp(20),0);
             TextView hint=new TextView(this);hint.setText("Confirm your current Firebase password once. It will be encrypted with Android Keystore and unlocked only after biometric authentication.");form.addView(hint);
-            EditText pass=new EditText(this);pass.setHint("Firebase password");pass.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);form.addView(pass);
+            EditText pass=new EditText(this);pass.setHint("Firebase password");pass.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);pass.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());pass.setSingleLine(true);pass.setTypeface(android.graphics.Typeface.DEFAULT);pass.setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);form.addView(pass);
             AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Enable fingerprint login").setView(form).setNegativeButton("Cancel",null).setPositiveButton("Verify",null).create();
             dialog.setOnShowListener(v->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(b->{
                 String password=pass.getText().toString();if(password.isEmpty()){pass.setError("Enter password");return;}pass.setText("");dialog.dismiss();verifyEnrollment(password);
