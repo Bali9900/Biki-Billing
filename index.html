@@ -1231,7 +1231,7 @@ $('saveBillBtn').onclick=()=>{
     }
   }
 }
-save();bikiSaleVoiceSpeak(total,!!old);window.bikiTelegramAlert?.enqueue({type:s.items?.every(i=>i.type==='service')?'service':'sale',customer:s.customer,service:s.productName,amount:s.total,payment_mode:s.mode,reference:s.receiptNo},'invoice:'+s.id);resetBill();$('billStatus').textContent='Bill '+s.receiptNo+' Saved! Sales History থেকে Print করুন।';
+save();bikiSaleVoiceSpeak(total,!!old);window.bikiTelegramAlert?.enqueue({type:s.items?.every(i=>i.type==='service')?'service':'sale',customer:s.customer,service:s.productName,amount:s.total,paid_amount:Number(s.paidAmount??s.total),due_amount:Number(s.dueAmount??0),payment_mode:Number(s.dueAmount??0)>0?(Number(s.paidAmount??0)>0?s.mode+' + Due':'Due'):s.mode,reference:s.receiptNo},'invoice:'+s.id);resetBill();$('billStatus').textContent='Bill '+s.receiptNo+' Saved! Sales History থেকে Print করুন।';
  /* Non-blocking confirmation: browser alert used to interrupt speech. */
  $('billStatus').textContent='✓ Receipt '+s.receiptNo+' Saved! Total '+money(total)+' · Paid '+money(paid)+' · Due '+money(dueAmount)+' — Sales History থেকে Print করুন।';
  const waStatus=document.getElementById('bikiBillWhatsAppLink');
