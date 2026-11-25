@@ -6,6 +6,9 @@ on:
       - 'android-app/**'
       - '.github/workflows/biki-android.yml'
   workflow_dispatch:
+concurrency:
+  group: biki-android-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
