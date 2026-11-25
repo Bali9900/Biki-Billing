@@ -103,6 +103,7 @@ public class MainActivity extends Activity {
             @Override public void onPageStarted(WebView v,String url,android.graphics.Bitmap icon){
                 if(inside(Uri.parse(url))) {retryUrl=url; failed=false;} progress.setVisibility(View.VISIBLE);
             }
+            @Override public void onPageCommitVisible(WebView v,String url){if(inside(Uri.parse(url)))v.setVisibility(View.VISIBLE);}
             @Override public void onPageFinished(WebView v,String url){if(inside(Uri.parse(url)))injectV2();}
             @Override public void onReceivedError(WebView v,WebResourceRequest r,WebResourceError e){
                 if(r.isForMainFrame()) { v.setVisibility(View.VISIBLE); failed=true; new AlertDialog.Builder(MainActivity.this).setTitle("Connection problem").setMessage("Check your internet connection and try again.").setPositiveButton("Retry",(d,w)->v.loadUrl(retryUrl)).setNegativeButton("Close",null).show(); }
