@@ -2,7 +2,7 @@
 <html lang="bn">
 <head>
 <meta charset="utf-8">
-<script id="biki-clean-chatgpt-url">(function(){try{var u=new URL(location.href);if(u.searchParams.get('utm_source')==='chatgpt.com'){u.searchParams.delete('utm_source');history.replaceState(history.state,'',u.pathname+u.search+u.hash);}}catch(e){}})();</script><meta name="viewport" content="width=device-width, initial-scale=1">
+<script id="biki-clean-chatgpt-url">(function(){try{var u=new URL(location.href);var changed=false;for(var k of Array.from(u.searchParams.keys())){if(/^utm_/i.test(k)||/^(fbclid|gclid|msclkid)$/i.test(k)){u.searchParams.delete(k);changed=true;}}if(changed)history.replaceState(history.state,'',u.pathname+u.search+u.hash);}catch(e){}})();</script><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BIKI ONLINE SERVICE CENTER</title>
 <link rel="icon" type="image/png" href="./favicon.png?v=6">
 <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico?v=6">
@@ -644,7 +644,8 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
     home.hidden=false;
     back.style.display='none';
   };
-  if(sessionStorage.getItem("biki_view_v1")==="billing") window.bikiPublicOpenBilling();
+  if(sessionStorage.getItem("biki_view_v1")==="billing" && sessionStorage.getItem("biki_logged_in")==="yes") window.bikiPublicOpenBilling();
+  else window.bikiPublicShowHome();
   // A fresh tab defaults to the public homepage.
   // The original Firebase authentication and billing code remain unchanged.
 })();
