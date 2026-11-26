@@ -112,6 +112,7 @@
         saveQueue(
           readQueue().filter(x => x.id !== item.id)
         );
+        try{const k='biki_telegram_sent_v1';const ledger=JSON.parse(localStorage.getItem(k)||'{}');ledger[item.id]=Date.now();localStorage.setItem(k,JSON.stringify(ledger));}catch(e){console.warn('Alert delivery ledger unavailable');}
 
         lastError = '';
         lastSuccess = new Date()
@@ -148,6 +149,37 @@
       (lastSuccess
         ? '\nLast Sent: ' + lastSuccess
         : '');
+  }
+
+
+  function recovery(){
+    if(sessionStorage.getItem('biki_active_role')==='staff')return alert('Admin only');
+    const d=document.createElement('dialog');
+    d.style.cssText='width:min(680px,92vw);max-height:85vh;border:1px solid #ccd7e5;border-radius:14px;padding:20px;color:#172b4d;background:white';
+    d.innerHTML='<h3>Telegram Alert Recovery</h3><p>Review saved records. Select only messages missing in Telegram. Historical values may reflect later edits.</p><label>After (IST) <input type="datetime-local" value="2026-11-25T19:24:39" step="1"></label> <button type="button" data-scan>Find records</button><p data-info></p><div data-list style="max-height:45vh;overflow:auto"></div><p><button type="button" data-send>Resend selected alerts</button> <button type="button" data-close>Close</button></p>';
+    document.body.appendChild(d);d.showModal();
+    const q=x=>d.querySelector(x);let rows=[];
+    const sentKey='biki_telegram_sent_v1';
+    const sent=()=>{try{return JSON.parse(localStorage.getItem(sentKey)||'{}')}catch{return {}}};
+    function scan(){
+      rows=[];q('[data-list]').replaceChildren();
+      const cutoff=Date.parse(q('input').value+'+05:30');
+      if(!Number.isFinite(cutoff))return;
+      let db;try{db=JSON.parse(localStorage.getItem('biki_accounting_v1')||'{}')}catch{return}
+      const stamp=(r)=>{if(r.at&&Number.isFinite(Date.parse(r.at)))return Date.parse(r.at);const raw=String(r.id||'');const n=parseInt(raw.slice(0,8),36);if(n>1577836800000&&n<4102444800000)return n;return NaN};
+      const add=(r,key,p,date)=>{if(!r.id)return;const t=stamp(r);const day=String(date||r.date||'').slice(0,10);if(Number.isFinite(t)?t<=cutoff:(!day||day<q('input').value.slice(0,10)))return;if(sent()[key]||readQueue().some(x=>x.id===key)||rows.some(x=>x.key===key))return;rows.push({key,p,t,day});};
+      for(const r of db.sales||[])add(r,'invoice:'+r.id,{type:r.items?.every(i=>i.type==='service')?'service':'sale',customer:r.customer,service:r.productName,amount:r.total,paid_amount:r.paidAmount,due_amount:r.dueAmount,payment_mode:r.mode,reference:r.receiptNo||r.id},r.date);
+      for(const r of db.dues||[])if(!r.saleId&&!r.ticketId)add(r,'duecreated:'+r.id,{type:'due_created',customer:r.name,amount:r.amount,remaining_due:r.amount,due_date:r.date,note:r.note,reference:r.id},r.date);
+      const groups=new Map();
+      for(const r of db.proV2?.payments||[]){const id=String(r.id||'');const batch=/^[a-z0-9]{13}-[a-z0-9]{13}$/i.test(id)?id.split('-')[0]:id;if(!batch)continue;const old=groups.get(batch);if(old)old.amount+=Number(r.amount||0);else groups.set(batch,{...r,id:batch,amount:Number(r.amount||0)});}
+      for(const r of groups.values())add(r,'duepay:'+r.id,{type:'due_payment',customer:r.customer,amount:r.amount,payment_mode:r.method,reference:r.receiptNo||r.id},r.date);
+      for(const r of db.proV2?.tickets||[])add(r,'ticket:'+r.id,{type:'ticket_booking',customer:r.customer,journey:r.mode,origin:r.from,destination:r.to,journey_date:r.journeyDate,pnr:r.pnr,amount:r.fare,payment_mode:r.payment,booking_id:r.id},r.bookedDate||r.date);
+      rows.sort((a,b)=>(a.t||Date.parse(a.day))-(b.t||Date.parse(b.day)));
+      rows.forEach((r,i)=>{const label=document.createElement('label');label.style.cssText='display:block;padding:9px;border-bottom:1px solid #ddd';const cb=document.createElement('input');cb.type='checkbox';cb.dataset.index=i;label.append(cb,document.createTextNode(' '+(Number.isFinite(r.t)?new Date(r.t).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}):r.day+' (time unknown)')+' | '+r.p.type+' | '+(r.p.customer||'')+' | ₹'+(r.p.amount??'')+' | '+(r.p.reference||r.p.booking_id||'')));q('[data-list]').append(label)});
+      q('[data-info]').textContent=rows.length+' candidate records. Previously delivered historical alerts cannot be automatically verified. Deleted records may be unavailable.';
+    }
+    q('[data-scan]').onclick=scan;q('[data-close]').onclick=()=>d.close();d.addEventListener('close',()=>d.remove());
+    q('[data-send]').onclick=()=>{const selected=[...d.querySelectorAll('input[data-index]:checked')].map(c=>rows[Number(c.dataset.index)]);if(!selected.length)return alert('Select missing alerts first');if(readQueue().length+selected.length>100)return alert('Please send fewer alerts at a time');if(!confirm('Resend '+selected.length+' selected alerts? Confirm these are missing in Telegram.'))return;for(const r of selected)if(!sent()[r.key])enqueue({...r.p,note:[r.p.note,'Recovered from billing history '+r.day].filter(Boolean).join(' | ')},r.key);scan();};scan();
   }
 
   function createPanel() {
@@ -284,6 +316,7 @@
       box.style.display = 'none';
     };
 
+    const recoveryButton=document.createElement('button');recoveryButton.type='button';recoveryButton.textContent='Telegram Alert Recovery';recoveryButton.style.cssText='display:block;margin-top:10px;padding:9px;border:1px solid #ccd7e5;border-radius:8px;background:white;color:#0755d9;cursor:pointer';recoveryButton.onclick=recovery;box.appendChild(recoveryButton);
     updatePanel();
   }
 
