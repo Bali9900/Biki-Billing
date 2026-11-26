@@ -95,7 +95,7 @@ function buttons(root){
   if(!id)return;
   const ticket=bookingById(id);
   if(!ticket?.pdfName)return;
-  const b=document.createElement('button');b.type='button';b.setAttribute('data-biki-ticket-share',id);b.textContent='🔗 Share Ticket Link';b.title='Create a secure PDF link active for 7 days';b.className='biki-share-ticket-button';actions.append(b);
+  const b=document.createElement('button');b.type='button';b.setAttribute('data-biki-ticket-share',id);b.textContent='🔗 Share Link';b.title='Create a secure PDF link active for 7 days';b.className='biki-share-ticket-button';actions.insertBefore(b,actions.querySelector('[data-biki-booking-delete]')); 
  });
 }
 function openDialog(link,ticket,expires){
@@ -152,7 +152,7 @@ async function share(button){
 }
 function init(){
  const area=document.getElementById('v2TicketOut');if(!area)return;
- const style=document.createElement('style');style.textContent='.ticket-history-actions .biki-share-ticket-button{background:#1757b2!important;color:#fff!important;border:1px solid #1757b2!important}.ticket-history-actions .biki-share-ticket-button:disabled{opacity:.5;cursor:wait}';document.head.append(style);
+ const style=document.createElement('style');style.textContent='.ticket-history-actions{display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:5px!important;min-width:max-content}.ticket-history-actions button{flex:0 0 auto;white-space:nowrap!important}.ticket-history-actions .biki-booking-delete-btn{order:2}.ticket-history-actions .biki-share-ticket-button{order:1;background:#1757b2!important;color:#fff!important;border:1px solid #1757b2!important}.ticket-history-actions .biki-share-ticket-button:disabled{opacity:.5;cursor:wait}';document.head.append(style);
  buttons(area);
  new MutationObserver(()=>buttons(area)).observe(area,{childList:true,subtree:true});
  area.addEventListener('click',e=>{
