@@ -1977,10 +1977,10 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #bikiCloudTools.biki-cloud-compact{position:fixed!important;top:auto!important;right:16px!important;bottom:112px!important;max-height:calc(100vh - 135px)!important;overflow-y:auto!important;max-width:min(340px,calc(100vw - 32px))!important;width:300px!important;box-sizing:border-box!important;padding:12px!important;display:none!important;flex-direction:column!important;gap:8px!important;flex-wrap:nowrap!important;justify-content:stretch!important;background:#fff!important;border:1px solid #d8e5f7!important;border-radius:14px!important;box-shadow:0 14px 42px #102b5840!important;z-index:1000002!important}
 #bikiCloudTools.biki-cloud-compact.biki-cloud-open{display:flex!important}
 #bikiCloudTools.biki-cloud-compact button{width:100%!important;text-align:left!important;padding:11px 13px!important;box-shadow:none!important}
-#bikiCloudMenuToggle{background:#0758d7!important;color:#fff!important;border:0!important;border-radius:10px!important;padding:9px 12px!important;box-shadow:0 5px 16px #002d7130!important;cursor:pointer!important;font-weight:700!important;font-size:13px!important}
-#bikiCloudMenuToggle.biki-cloud-header-button{position:static!important;display:inline-flex!important;align-items:center!important;white-space:nowrap!important;min-height:34px!important}
+#bikiCloudTools.biki-cloud-compact #bikiCloudSignout{background:#fff1f1!important;color:#a12222!important}
+#bikiCloudMenuToggle{position:fixed!important;top:auto!important;bottom:60px!important;right:16px!important;z-index:1000002!important;background:#0758d7!important;color:white!important;border:0!important;border-radius:10px!important;padding:10px 14px!important;box-shadow:0 5px 16px #002d7150!important;cursor:pointer!important;font-weight:700!important;font-size:13px!important}
 #bikiCloudMenuToggle[hidden]{display:none!important}
-@media(max-width:760px){#bikiCloudTools.biki-cloud-compact{right:9px!important;bottom:80px!important;width:min(300px,calc(100vw - 18px))!important;max-height:calc(100vh - 105px)!important}}
+@media(max-width:600px){#bikiCloudMenuToggle{top:auto!important;bottom:60px!important;right:9px!important}#bikiCloudTools.biki-cloud-compact{top:auto!important;bottom:112px!important;right:9px!important;width:min(300px,calc(100vw - 18px))!important}}
 </style>
 <script id="biki-cloud-tools-compact-js">
 (function(){
@@ -1999,18 +1999,16 @@ function setup(){
   tools.append(pdfToggle,pdfPanel);
  }
  const toggle=document.createElement('button');
- toggle.type='button';toggle.id='bikiCloudMenuToggle';toggle.className='biki-cloud-header-button';toggle.textContent='☁ Cloud Tools ▾';
+ toggle.type='button';toggle.id='bikiCloudMenuToggle';toggle.textContent='☁ Cloud Tools ▾';
  toggle.setAttribute('aria-controls','bikiCloudTools');toggle.setAttribute('aria-expanded','false');
- const logoutBtn=document.querySelector('.app .top .actions button[onclick="logout()"]');
- if(logoutBtn && logoutBtn.parentNode)logoutBtn.parentNode.insertBefore(toggle,logoutBtn);
- else {const header=document.querySelector('.app .top .actions:last-child');if(header)header.appendChild(toggle);else document.body.appendChild(toggle);}
+ document.body.appendChild(toggle);
  function close(){tools.classList.remove('biki-cloud-open');toggle.textContent='☁ Cloud Tools ▾';toggle.setAttribute('aria-expanded','false')}
- function syncVisibility(){const app=document.querySelector('.app');const loggedIn=!!app && getComputedStyle(app).display!=='none';toggle.hidden=!loggedIn;if(!loggedIn)close()}
+ function syncVisibility(){const loggedIn=tools.style.display!=='none';toggle.hidden=!loggedIn;if(!loggedIn)close()}
  toggle.addEventListener('click',function(e){e.stopPropagation();const open=tools.classList.toggle('biki-cloud-open');toggle.textContent=open?'☁ Cloud Tools ▴':'☁ Cloud Tools ▾';toggle.setAttribute('aria-expanded',String(open))});
  document.addEventListener('click',function(e){if(!tools.contains(e.target)&&e.target!==toggle)close()});
  document.addEventListener('keydown',function(e){if(e.key==='Escape')close()});
  const observer=new MutationObserver(syncVisibility);
- observer.observe(document.querySelector('.app')||tools,{attributes:true,attributeFilter:['style','class']});
+ observer.observe(tools,{attributes:true,attributeFilter:['style']});
  syncVisibility();
  return true;
 }
@@ -2179,7 +2177,7 @@ form.addEventListener('submit',async function(event){
   html body #bikiTelegramPanel,
   html body #bikiTelegramToggle,
   html body #bikiTelegramBox,
-  /* Cloud Tools now lives beside Sign Out in the header. */
+  html body #bikiCloudMenuToggle,
   html body #bikiCloudTools,
   html body #bikiCloudTools.biki-cloud-compact.biki-cloud-open,
   html body #bikiCloudStatus {
