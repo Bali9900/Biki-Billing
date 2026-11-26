@@ -741,8 +741,14 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
 
 <section class="page" id="dues"><div class="head"><div><h1>Due Management</h1><p>কাস্টমারের বাকি টাকার হিসাব রাখুন।</p></div></div><div class="panel"><form id="dueForm" class="formgrid"><div class="field"><label>কাস্টমারের নাম</label><input id="dueName" required></div><div class="field"><label>Customer Mobile Number</label><input id="duePhone" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit mobile number" title="Enter a 10-digit mobile number"></div><div class="field"><label>বাকি টাকা (₹)</label><input id="dueAmount" type="number" min=".01" step=".01" required></div><div class="field"><label>Due Date / বাকি হওয়ার তারিখ</label><input id="dueDate" type="date" required></div><div class="field full"><label>বিবরণ</label><input id="dueNote"></div><div class="field full"><button class="primary">Save Due</button></div></form></div><div class="panel"><h3>বাকি তালিকা</h3>
 <div class="formgrid" style="margin:14px 0;align-items:end">
-<div class="field"><label for="dueSearchName">🔎 Customer Name Search</label><input id="dueSearchName" type="search" placeholder="Customer-এর নাম লিখুন" autocomplete="off"></div>
-<div class="field"><label for="dueSearchDate">📅 Select Due Date</label><input id="dueSearchDate" type="date"></div>
+<div class="field"><label for="dueFilterType">Due History Filter</label><select id="dueFilterType"><option value="daily" selected>Daily</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option><option value="range">Date to Date</option><option value="all">All Dues</option></select></div>
+<div class="field" id="dueSearchDayField"><label for="dueSearchDate">Select Date</label><input id="dueSearchDate" type="date"></div>
+<div class="field" id="dueSearchMonthField" style="display:none"><label for="dueSearchMonth">Select Month</label><input id="dueSearchMonth" type="month"></div>
+<div class="field" id="dueSearchYearField" style="display:none"><label for="dueSearchYear">Select Year</label><input id="dueSearchYear" type="number" min="2000" max="2100" step="1"></div>
+<div class="field" id="dueSearchFromField" style="display:none"><label for="dueSearchFrom">From Date</label><input id="dueSearchFrom" type="date"></div>
+<div class="field" id="dueSearchToField" style="display:none"><label for="dueSearchTo">To Date</label><input id="dueSearchTo" type="date"></div>
+<div class="field"><label for="dueSearchName">Customer Search</label><input id="dueSearchName" type="search" placeholder="Customer name or mobile number" autocomplete="off"></div>
+<div class="field"><button type="button" id="dueFilterReset" class="outline">Reset Filter</button></div>
 </div>
 <div class="tablewrap"><table><thead><tr><th>CUSTOMER</th><th>MOBILE</th><th>DUE DATE</th><th>DETAILS</th><th>AMOUNT</th><th>ACTION</th></tr></thead><tbody id="dueRows"></tbody></table></div></div>
 <div class="panel" id="bikiDuePaymentReport"><h3>Due Received Report / বাকি আদায়ের রিপোর্ট</h3><p class="muted">সম্পূর্ণ পরিশোধিত Due-এর Payment History-ও এখানে দেখা যাবে।</p>
@@ -851,7 +857,7 @@ body:has(#bikiPublicHome:not([hidden])) #bikiCloudGate,body:has(#bikiPublicHome:
 const $=id=>document.getElementById(id), money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
 let data=JSON.parse(localStorage.getItem('biki_accounting_v1')||'{"transactions":[],"products":[],"customers":[],"dues":[],"sales":[],"services":["PAN Card","Aadhaar","Voter Card","Ration Card","Train Ticket","Flight Ticket","Bus Ticket","Form Fill-up","Banking / CSP"]}');
 data.sales=data.sales||[]; function save(){localStorage.setItem('biki_accounting_v1',JSON.stringify(data));render()}
-function show(page){if(bikiIsStaff()&&!['dashboard','sales','customers','dues'].includes(page)){alert('Only Admin can open this page.');return;}document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===page));document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(page==='sales'&&$('historyReset'))$('historyReset').click();$('topTitle').textContent=({dashboard:'Dashboard',sales:'Sales / বিক্রি',transactions:'Income & Expense',products:'Products',customers:'Customers',dues:'Due Management',services:'Services',reports:'Reports',settings:'Settings'})[page];}
+function show(page){if(bikiIsStaff()&&!['dashboard','sales','customers','dues'].includes(page)){alert('Only Admin can open this page.');return;}document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===page));document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(page==='sales'&&$('historyReset'))$('historyReset').click();if(page==='dues'&&$('dueFilterReset'))$('dueFilterReset').click();$('topTitle').textContent=({dashboard:'Dashboard',sales:'Sales / বিক্রি',transactions:'Income & Expense',products:'Products',customers:'Customers',dues:'Due Management',services:'Services',reports:'Reports',settings:'Settings'})[page];}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.page));
 function del(arr,id){
  if(bikiIsStaff()){alert('Delete requires Admin access.');return;}
@@ -900,8 +906,21 @@ function render(){
  renderSalesHistory();
 }
 
-$('dueSearchName').addEventListener('input',render);
-$('dueSearchDate').addEventListener('change',render);
+function bikiUpdateDueFilterFields(){
+ const t=$('dueFilterType').value;
+ [['dueSearchDayField','daily'],['dueSearchMonthField','monthly'],['dueSearchYearField','yearly'],['dueSearchFromField','range'],['dueSearchToField','range']].forEach(([id,v])=>$(id).style.display=t===v?'':'none');
+ bikiRenderGroupedDues();
+}
+function bikiResetDueFilter(){
+ const today=bikiLocalToday();
+ $('dueFilterType').value='daily';$('dueSearchDate').value=today;$('dueSearchMonth').value=today.slice(0,7);$('dueSearchYear').value=today.slice(0,4);
+ $('dueSearchFrom').value=today;$('dueSearchTo').value=today;$('dueSearchName').value='';
+ bikiUpdateDueFilterFields();
+}
+$('dueFilterType').addEventListener('change',bikiUpdateDueFilterFields);
+['dueSearchName','dueSearchDate','dueSearchMonth','dueSearchYear','dueSearchFrom','dueSearchTo'].forEach(id=>$(id).addEventListener('input',bikiRenderGroupedDues));
+$('dueFilterReset').addEventListener('click',bikiResetDueFilter);
+bikiResetDueFilter();
 // Customer balances are grouped for display only; invoice links remain intact.
 function bikiDuePhone(v){let p=String(v||'').replace(/\D/g,'');if(p.length===12&&p.startsWith('91'))p=p.slice(2);if(p.length===11&&p.startsWith('0'))p=p.slice(1);return /^\d{10}$/.test(p)?p:'';}
 function bikiDueKey(d){return bikiDuePhone(d.phone)?'p:'+bikiDuePhone(d.phone):'i:'+d.id;}
@@ -909,8 +928,9 @@ function bikiDueGroup(d){return data.dues.filter(x=>bikiDueKey(x)===bikiDueKey(d
 function bikiDueSum(rows){return bikiRoundMoney(rows.reduce((n,x)=>n+Math.max(0,Number(x.amount)||0),0));}
 function bikiRenderGroupedDues(){
  const groups=new Map();for(const d of data.dues.slice().reverse()){if(!groups.has(bikiDueKey(d)))groups.set(bikiDueKey(d),[]);groups.get(bikiDueKey(d)).push(d);}
- const q=$('dueSearchName').value.trim().toLowerCase(),date=$('dueSearchDate').value;
- $('dueRows').innerHTML=[...groups.values()].filter(g=>bikiDueSum(g)>0&&g.some(d=>!q||String(d.name||'').toLowerCase().includes(q)||String(d.phone||'').includes(q))&&(!date||g.some(d=>d.amount>0&&d.date===date))).map(g=>{const d=g[0],i=data.dues.indexOf(d);return `<tr><td>${esc(d.name)}</td><td>${esc(d.phone||'—')}</td><td>${esc(d.date||'—')}</td><td>${g.filter(x=>x.amount>0).length} open dues</td><td><b>${money(bikiDueSum(g))}</b></td><td><div class="biki-due-actions"><button class="biki-due-received" onclick="bikiGroupReceive(${i})">Received</button><button class="outline" onclick="bikiGroupReceipt(${i})">Receipt</button><button class="outline" style="color:#15803d" onclick="bikiGroupWhatsApp(${i})">Send WhatsApp</button></div>${bikiIsStaff()?'':`<div class="biki-due-actions" style="margin-top:8px"><button class="primary" onclick="bikiManageDue(${i},false)">Edit Due</button><button class="danger" onclick="bikiManageDue(${i},true)">Delete Due</button></div>`}</td></tr>`}).join('')||'<tr><td colspan="6" class="empty">কোনো বাকি নেই</td></tr>';
+ const q=$('dueSearchName').value.trim().toLowerCase(),type=$('dueFilterType').value,day=$('dueSearchDate').value,month=$('dueSearchMonth').value,year=$('dueSearchYear').value,from=$('dueSearchFrom').value,to=$('dueSearchTo').value;
+ const inPeriod=d=>{const dt=String(d.date||'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(dt))return type==='all';return type==='all'||(type==='daily'?dt===day:type==='monthly'?dt.slice(0,7)===month:type==='yearly'?dt.slice(0,4)===year:type==='range'&&from&&to&&from<=to&&dt>=from&&dt<=to);};
+ $('dueRows').innerHTML=[...groups.values()].filter(g=>bikiDueSum(g)>0&&g.some(d=>!q||String(d.name||'').toLowerCase().includes(q)||String(d.phone||'').includes(q))&&g.some(d=>Number(d.amount)>0&&inPeriod(d))).map(g=>{const d=g[0],i=data.dues.indexOf(d);return `<tr><td>${esc(d.name)}</td><td>${esc(d.phone||'—')}</td><td>${esc(d.date||'—')}</td><td>${g.filter(x=>x.amount>0).length} open dues</td><td><b>${money(bikiDueSum(g))}</b></td><td><div class="biki-due-actions"><button class="biki-due-received" onclick="bikiGroupReceive(${i})">Received</button><button class="outline" onclick="bikiGroupReceipt(${i})">Receipt</button><button class="outline" style="color:#15803d" onclick="bikiGroupWhatsApp(${i})">Send WhatsApp</button></div>${bikiIsStaff()?'':`<div class="biki-due-actions" style="margin-top:8px"><button class="primary" onclick="bikiManageDue(${i},false)">Edit Due</button><button class="danger" onclick="bikiManageDue(${i},true)">Delete Due</button></div>`}</td></tr>`}).join('')||'<tr><td colspan="6" class="empty">কোনো বাকি নেই</td></tr>';
 }
 
 function bikiDuePaymentReportRows(records){
