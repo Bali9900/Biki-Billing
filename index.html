@@ -2185,4 +2185,77 @@ form.addEventListener('submit',async function(event){
   }
 }
 </style>
+
+<style id="biki-pdf-compact-status-v1">
+#bikiCloudMeter .biki-pdf-connect-row{margin-top:13px;padding-top:12px;border-top:1px solid #cdddf2}
+#bikiCloudTools.biki-cloud-compact #bikiPdfStatusButton{display:flex!important;align-items:center;gap:9px;width:100%!important;text-align:left!important;cursor:pointer!important;border:1px solid #f0c6c6!important;border-radius:10px!important;background:#fff4f4!important;color:#9d3131!important;padding:10px!important;font-weight:700!important;font-size:12px!important;box-shadow:none!important}
+#bikiPdfStatusButton .pdf-indicator{font-size:17px;line-height:1;flex:none}
+#bikiPdfStatusButton .pdf-state{display:block;font-size:11px;font-weight:500;margin-top:2px;opacity:.85}
+#bikiPdfStatusButton.pdf-connected{border-color:#b9e2ce!important;background:#edf9f1!important;color:#117849!important}
+#bikiPdfStatusButton.pdf-checking{border-color:#cfddf0!important;background:#f4f7fc!important;color:#416282!important}
+#bikiPdfStatusButton.pdf-warning{border-color:#f1dda2!important;background:#fff9e9!important;color:#875d00!important}
+#bikiPdfCloudPanel.biki-pdf-modern{display:block!important;border:1px solid #d6e4f7!important;border-radius:10px!important;margin:9px 0 0!important;background:#fff!important;padding:11px!important}
+#bikiPdfCloudPanel.biki-pdf-modern[hidden]{display:none!important}
+#bikiPdfCloudPanel.biki-pdf-modern .biki-pdf-compact-title{font-weight:700;color:#173b70;font-size:12px;margin-bottom:8px}
+#bikiPdfCloudPanel.biki-pdf-modern input{width:100%!important;max-width:100%!important;box-sizing:border-box!important;margin:4px 0 9px!important;padding:10px!important;border:1px solid #b9cde7!important;border-radius:8px!important;font-size:13px!important}
+#bikiCloudTools.biki-cloud-compact #bikiPdfCloudPanel.biki-pdf-modern button{font-size:12px!important;margin:4px 0!important;text-align:center!important}
+#bikiPdfCloudPanel.biki-pdf-modern #pdfCloudLogin{background:#125bd2!important;color:#fff!important}
+#bikiPdfCloudPanel.biki-pdf-modern #pdfCloudLogout{background:#fff0f0!important;color:#a12b2b!important}
+#bikiPdfCloudPanel.biki-pdf-modern #pdfCloudStatus{font-size:11px!important;line-height:1.45!important;overflow-wrap:anywhere!important;margin:7px 0!important}
+#bikiPdfCloudPanel.biki-pdf-modern #pdfCloudMigrate{background:#f1f6ff!important}
+</style>
+<script id="biki-pdf-compact-status-js-v1">
+(function(){'use strict';
+function setup(){
+ const tools=document.getElementById('bikiCloudTools'),meter=document.getElementById('bikiCloudMeter'),panel=document.getElementById('bikiPdfCloudPanel');
+ if(!tools||!meter||!panel)return false;
+ if(document.getElementById('bikiPdfStatusButton'))return true;
+ const status=document.getElementById('pdfCloudStatus');
+ const signout=document.getElementById('bikiCloudSignout');
+ const oldToggle=Array.from(tools.querySelectorAll('button')).find(b=>b.getAttribute('aria-controls')==='bikiPdfCloudPanel');
+ if(oldToggle)oldToggle.remove();
+ panel.classList.add('biki-pdf-modern');
+ panel.querySelectorAll('p.muted').forEach(p=>{
+  if(p!==status && /Firebase Login|Supabase Email Login|Migration করুন|JSON Backup/i.test(p.textContent))p.remove();
+ });
+ const heading=panel.querySelector('b');if(heading){heading.className='biki-pdf-compact-title';heading.textContent='PDF Cloud Account';}
+ panel.hidden=true;
+ const row=document.createElement('div');row.className='biki-pdf-connect-row';
+ const button=document.createElement('button');button.type='button';button.id='bikiPdfStatusButton';button.className='pdf-checking';
+ button.setAttribute('aria-controls','bikiPdfCloudPanel');button.setAttribute('aria-expanded','false');
+ button.innerHTML='<span class="pdf-indicator" aria-hidden="true">◌</span><span>☁ Ticket PDF Cloud Storage<span class="pdf-state">Checking connection…</span></span>';
+ row.append(button,panel);meter.append(row);
+ const state=button.querySelector('.pdf-state'),symbol=button.querySelector('.pdf-indicator');
+ function sync(){
+  const s=(status?.textContent||'').trim(),connected=/^Connected:/i.test(s),disconnected=/^Not connected/i.test(s);
+  button.classList.toggle('pdf-connected',connected);
+  button.classList.toggle('pdf-warning',!connected&&!disconnected&&!!s);
+  button.classList.toggle('pdf-checking',!connected&&!disconnected&&!s);
+  symbol.textContent=connected?'✓':disconnected?'✕':!s?'◌':'!';
+  state.textContent=connected?'Connected · Auto Restore ON':disconnected?'Not Connected · Tap to sign in':!s?'Checking connection…':'Connection needs attention · Tap to check';
+  button.setAttribute('aria-label','Ticket PDF Cloud Storage: '+state.textContent);
+ }
+ function toggle(open){
+  panel.hidden=!open;
+  button.setAttribute('aria-expanded',String(open));
+  if(open&&!/^Connected:/i.test(status?.textContent||'')){
+   const password=document.getElementById('pdfCloudPassword');
+   if(password)setTimeout(()=>password.focus(),60);
+  }
+ }
+ button.addEventListener('click',()=>toggle(panel.hidden));
+ sync();
+ if(status)new MutationObserver(sync).observe(status,{childList:true,subtree:true,characterData:true});
+ // Update UI even when the existing PDF client restores its saved session.
+ window.addEventListener('pageshow',sync);
+ // Keep Firebase sign-out as the last control; do not touch its handler.
+ if(signout)tools.appendChild(signout);
+ return true;
+}
+if(!setup()){
+ const watcher=new MutationObserver(()=>{if(setup())watcher.disconnect()});
+ watcher.observe(document.documentElement,{childList:true,subtree:true});
+}
+})();
+</script>
 </body></html>
