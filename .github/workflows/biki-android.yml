@@ -1,7 +1,7 @@
-name: BIKI Billing V4.1 - Direct Login Update
+name: BIKI Billing V4.1 - Original Design Rebuild
 on:
   push:
-    branches: [android-app]
+    branches: [v4.1-rebuild]
     paths:
       - 'android-app/**'
       - '.github/workflows/biki-android.yml'
