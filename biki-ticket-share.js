@@ -115,7 +115,11 @@ function openDialog(link,ticket,expires){
  add('🟢 Share WhatsApp',()=>{
   const digits=String(ticket.phone||'').replace(/\D/g,'');
   const num=digits.length===10?'91'+digits:digits.length===12&&digits.startsWith('91')?digits:'';
-  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(message),'_blank','noopener,noreferrer');
+  // Open the installed WhatsApp Desktop/Beta app, matching Sales and Due shares.
+  // Do not create a WhatsApp Web tab.
+  if(!num){alert('Booking History-তে সঠিক 10-digit Customer Mobile Number নেই।');return;}
+  const desktopUrl='whatsapp://send?phone='+encodeURIComponent(num)+'&text='+encodeURIComponent(message);
+  window.location.href=desktopUrl;
  },'#16834d');
  add('Close',()=>overlay.remove(),'#52657d');
  card.append(actions);overlay.append(card);overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});document.body.append(overlay);
