@@ -26,7 +26,23 @@ function pathFor(id){return 'owner/'+encodeURIComponent(String(id))+'.pdf'}
 async function upload(id,file){await auth();const path=pathFor(id);const {error}=await sb().storage.from(BUCKET).upload(path,file,{upsert:true,contentType:'application/pdf'});if(error)throw error;return path}
 async function download(path){await auth();const {data,error}=await sb().storage.from(BUCKET).download(path);if(error)throw error;return data}
 async function remove(path){await auth();const {error}=await sb().storage.from(BUCKET).remove([path]);if(error)throw error}
-window.bikiPdfCloud={upload,download,remove,getSession:async()=>{const {data,error}=await sb().auth.getSession();if(error)throw error;return data.session}};
+async function createShareLinks(path,filename){
+ await auth();
+ if(typeof path!=='string'||!/^owner\/[A-Za-z0-9._%~-]+\.pdf$/.test(path))throw Error('Invalid private ticket PDF path');
+ const bucket=sb().storage.from(BUCKET),seconds=7*24*60*60;
+ const {data:view,error:viewError}=await bucket.createSignedUrl(path,seconds);
+ if(viewError||!view?.signedUrl)throw(viewError||Error('Could not create viewer link'));
+ const clean=String(filename||'ticket.pdf').replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,90)||'ticket.pdf';
+ const {data:downloadLink,error:downloadError}=await bucket.createSignedUrl(path,seconds,{download:clean});
+ if(downloadError||!downloadLink?.signedUrl)throw(downloadError||Error('Could not create download link'));
+ const validate=(link)=>{
+   const u=new URL(link,URL_BASE);
+   if(u.origin!==URL_BASE||!u.pathname.startsWith('/storage/v1/object/sign/'+BUCKET+'/'))throw Error('Invalid Supabase signed URL');
+   return u.href;
+ };
+ return {view:validate(view.signedUrl),download:validate(downloadLink.signedUrl),expires:Date.now()+seconds*1000};
+}
+window.bikiPdfCloud={upload,download,remove,createShareLinks,getSession:async()=>{const {data,error}=await sb().auth.getSession();if(error)throw error;return data.session}};
 function init(){
  const $=id=>document.getElementById(id);
  if(!$('pdfCloudLogin'))return;
