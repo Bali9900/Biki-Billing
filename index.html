@@ -2259,4 +2259,14 @@ if(!setup()){
 }
 })();
 </script>
+<script id="biki-admin-menu-outside-close">
+document.addEventListener('click', function(event) {
+  document.querySelectorAll('details.biki-admin-header-menu[open]').forEach(function(menu) {
+    if (!menu.contains(event.target)) menu.removeAttribute('open');
+  });
+}, true);
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') document.querySelectorAll('details.biki-admin-header-menu[open]').forEach(function(menu) { menu.removeAttribute('open'); });
+});
+</script>
 </body></html>
