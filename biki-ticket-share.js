@@ -4,9 +4,11 @@
 const HOST='https://bikionlineservicecenter.github.io/';
 const CLOUD_ORIGIN='https://kxlzoylmepbvfnacuzgk.supabase.co';
 const HASH_PREFIX='#ticket=';
+const SHORT_HASH='#t=';
+const SHORT_API=CLOUD_ORIGIN+'/functions/v1/biki-ticket-short';
 const TTL=604800000;
 const root=document.documentElement;
-const guest=location.hash.startsWith(HASH_PREFIX);
+const guest=location.hash.startsWith(HASH_PREFIX)||location.hash.startsWith(SHORT_HASH);
 if(guest){
   root.setAttribute('data-biki-ticket-guest','');
   const st=document.createElement('style');
@@ -28,7 +30,15 @@ function unpack(token){
  if(p.v!==1||!Number.isFinite(p.expires)||p.expires<Date.now()||p.expires>Date.now()+TTL+120000)throw Error('This ticket link has expired or is invalid');
  return {view:safeUrl(p.view),download:safeUrl(p.download),expires:p.expires};
 }
-function guestPage(){
+async function fetchShort(code){
+ if(!/^[A-Za-z0-9_-]{12,64}$/.test(code))throw Error('Invalid short ticket code');
+ const response=await fetch(SHORT_API+'?code='+encodeURIComponent(code),{cache:'no-store'});
+ if(!response.ok)throw Error('Short ticket link expired or unavailable');
+ const p=await response.json();
+ if(!Number.isFinite(p.expires)||p.expires<Date.now()||p.expires>Date.now()+TTL+120000)throw Error('Expired short ticket link');
+ return {view:safeUrl(p.view),download:safeUrl(p.download),expires:p.expires};
+}
+async function guestPage(){
  const host=document.createElement('main');
  host.id='bikiTicketGuest';
  const card=document.createElement('div');card.className='bt-card';host.append(card);
@@ -37,9 +47,12 @@ function guestPage(){
  const h=document.createElement('h1');h.textContent='BIKI ONLINE SERVICE CENTER';hdr.append(h);
  const loc=document.createElement('div');loc.textContent='Galimpur Bazar, Chanchal, Malda';hdr.append(loc);card.append(hdr);
  const body=document.createElement('div');body.className='bt-body';card.append(body);
+ const loading=document.createElement('p');loading.className='bt-notice';loading.textContent='Opening your secure ticket…';body.append(loading);
  try{
-   const token=location.hash.slice(HASH_PREFIX.length);
-   const data=unpack(token);
+   const short=location.hash.startsWith(SHORT_HASH);
+   const token=location.hash.slice(short?SHORT_HASH.length:HASH_PREFIX.length);
+   const data=short?await fetchShort(token):unpack(token);
+   loading.remove();
    const title=document.createElement('h2');title.textContent='Your Travel Ticket PDF';body.append(title);
    const notice=document.createElement('p');notice.className='bt-notice';
    notice.textContent='Your ticket is available to view and download until '+new Date(data.expires).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})+'. Please keep this private link secure.';
@@ -51,12 +64,13 @@ function guestPage(){
    const frame=document.createElement('iframe');frame.src=data.view;frame.title='Ticket PDF preview';frame.referrerPolicy='no-referrer';body.append(frame);
    const foot=document.createElement('p');foot.textContent='Thank you for choosing BIKI ONLINE SERVICE CENTER';body.append(foot);
  }catch(e){
+   loading.remove();
    const n=document.createElement('p');n.className='bt-notice bt-error';n.textContent='Ticket link expired or invalid. Contact BIKI ONLINE SERVICE CENTER for a new 7-day link.';body.append(n);
  }
  document.body.append(host);
 }
 if(guest){
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',guestPage,{once:true});else guestPage();
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{void guestPage()},{once:true});else void guestPage();
  return;
 }
 const selector='[data-biki-ticket-share]';
@@ -94,11 +108,13 @@ function openDialog(link,ticket,expires){
  const field=document.createElement('textarea');field.readOnly=true;field.value=link;field.rows=4;field.style.cssText='width:100%;padding:10px;box-sizing:border-box;border:1px solid #cad9ef;border-radius:8px;overflow-wrap:anywhere';card.append(field);
  const actions=document.createElement('div');actions.style.cssText='display:flex;flex-wrap:wrap;gap:9px;margin-top:13px';
  function add(label,fn,bg){const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='padding:10px 13px;border:0;border-radius:8px;background:'+bg+';color:white;cursor:pointer';b.onclick=fn;actions.append(b);}
- add('📋 Copy Link',async()=>{try{await navigator.clipboard.writeText(link);alert('Ticket link copied')}catch(_){field.select();document.execCommand('copy');alert('Select and copy the link if needed')}},'#1757b2');
- add('WhatsApp Share',()=>{
+ const message=['🚆 BIKI ONLINE SERVICE CENTER','','Dear Customer,','Your booked ticket is ready.','','🎫 Ticket Download Link:',link,'','📥 View & Download Your Ticket','⏳ Link Validity: 7 Days','','Thank you for choosing us! 🙏','','BIKI ONLINE SERVICE CENTER','Galimpur Bazar, Chanchal, Malda'].join('\n');
+ async function copy(value,label){try{await navigator.clipboard.writeText(value);alert(label+' copied')}catch(_){const temp=document.createElement('textarea');temp.value=value;temp.style.cssText='position:fixed;left:-10000px;top:0';document.body.append(temp);temp.select();const ok=document.execCommand('copy');temp.remove();if(ok)alert(label+' copied');else alert('Copy failed. Please select the text and copy manually.');}}
+ add('📋 Copy Link',()=>copy(link,'Ticket link'),'#1757b2');
+ add('📄 Copy Message',()=>copy(message,'Ticket message'),'#3269c4');
+ add('🟢 Share WhatsApp',()=>{
   const digits=String(ticket.phone||'').replace(/\D/g,'');
   const num=digits.length===10?'91'+digits:digits.length===12&&digits.startsWith('91')?digits:'';
-  const message='BIKI ONLINE SERVICE CENTER\nYour travel ticket PDF (valid for 7 days):\n'+link;
   window.open('https://wa.me/'+num+'?text='+encodeURIComponent(message),'_blank','noopener,noreferrer');
  },'#16834d');
  add('Close',()=>overlay.remove(),'#52657d');
@@ -113,9 +129,20 @@ async function share(button){
  if(!window.bikiPdfCloud?.createShareLinks)return alert('PDF Cloud is not ready. Reload the page.');
  busy=true;button.disabled=true;const old=button.textContent;button.textContent='Creating 7-day link…';
  try{
-  const links=await window.bikiPdfCloud.createShareLinks(ticket.pdfCloudPath,ticket.pdfName);
-  const url=HOST+HASH_PREFIX+b64json({v:1,view:links.view,download:links.download,expires:links.expires});
-  openDialog(url,ticket,links.expires);
+  let result;
+  try{
+   const session=await window.bikiPdfCloud.getSession();
+   if(!session?.access_token)throw Error('PDF Cloud session expired');
+   const response=await fetch(SHORT_API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},body:JSON.stringify({path:ticket.pdfCloudPath,filename:ticket.pdfName})});
+   const body=await response.json();
+   if(!response.ok||!body.code)throw Error(body.error||'Short link service unavailable');
+   result={url:HOST+SHORT_HASH+body.code,expires:body.expires};
+  }catch(shortError){
+   console.warn('Short ticket link unavailable; using secure long link',shortError);
+   const links=await window.bikiPdfCloud.createShareLinks(ticket.pdfCloudPath,ticket.pdfName);
+   result={url:HOST+HASH_PREFIX+b64json({v:1,view:links.view,download:links.download,expires:links.expires}),expires:links.expires};
+  }
+  openDialog(result.url,ticket,result.expires);
  }catch(err){alert('Could not create ticket share link: '+(err?.message||String(err)));}
  finally{busy=false;button.disabled=false;button.textContent=old;}
 }
