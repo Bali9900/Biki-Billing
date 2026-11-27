@@ -31,7 +31,7 @@ android {
         applicationId 'com.biki.billing.pro.signature'
         minSdk 23
         targetSdk 36
-        versionCode 20
-        versionName "4.2-signature"
+        versionCode 21
+        versionName "4.3-signature"
     }
 }
