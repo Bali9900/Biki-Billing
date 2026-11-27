@@ -46,7 +46,7 @@ document.getElementById('bikiCloudImport').onclick=()=>document.getElementById('
 document.getElementById('bikiCloudFile').onchange=async e=>{const f=e.target.files[0];if(!f||!ready)return;if(f.size>15*1024*1024)return alert('Backup too large (15 MB limit).');let payload;try{payload=JSON.parse(await f.text())}catch{return alert('Invalid JSON backup')}const records=payload.storage||payload.localStorage;if(!records||typeof records!=='object'||!records.biki_accounting_v1)return alert('Not a valid BIKI backup.');const keys=syncKeys.filter(k=>typeof records[k]==='string');if(!confirm('WARNING: This will OVERWRITE '+keys.length+' cloud data fields for every PC. First download a backup. Continue?'))return;busy=true;state('Importing…');try{for(const k of keys){await writeKey(k,records[k],true)}alert('Cloud import complete. Reloading latest data.');location.reload()}catch(err){alert('Import failed: '+err.message)}finally{busy=false}};
 function setLocal(k,v){applying=true;try{if(v===null)originalRemove.call(localStorage,k);else originalSet.call(localStorage,k,v)}finally{applying=false}}
 function docRef(k){return db.collection('owners').doc(uid).collection('settings').doc(k)}
-async function writeKey(k,v,force=false){if(!ready&&!force)return;const bytes=new Blob([v||'']).size;if(bytes>900000)throw Error(k+' exceeds Firestore document limit (900 KB). Please reduce image/PDF size.');await docRef(k).set({value:v,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),deviceId:deviceId},{merge:false});lastCloud.set(k,v)}
+async function writeKey(k,v,force=false){if(!ready&&!force)return;const bytes=new Blob([v||'']).size;if(bytes>750000&&bytes<=900000)console.warn('BIKI Cloud storage nearing document limit:',k,bytes);if(bytes>900000)throw Error(k+' exceeds Firestore document limit (900 KB). Please reduce image/PDF size.');await docRef(k).set({value:v,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),deviceId:deviceId},{merge:false});lastCloud.set(k,v)}
 const deviceId='biki-'+Math.random().toString(36).slice(2);
 function queue(k,v){
  pending.set(k,v);state('Saving…');
@@ -90,7 +90,8 @@ async function signout(reason){
  const button=document.getElementById('bikiCloudLogin');button.disabled=true;
  signoutTask=(async()=>{
    try{
-     if(pending.size)await Promise.race([writeChain,new Promise(resolve=>setTimeout(resolve,4000))]);
+     if(pending.size)await Promise.race([writeChain,new Promise(resolve=>setTimeout(resolve,15000))]);
+     if(pending.size){downloadBackup();pending.clear();alert('Some changes could not be confirmed online. A local backup was requested before sign-out. Keep it for recovery.');}
      ready=false;if(auth)await auth.signOut();uid=null;
      clearAuthUi(message+(pending.size?' Cloud save may be pending; local records were not deleted.':''));
    }catch(e){ready=false;clearAuthUi('Signed out locally. Firebase sign-out could not complete. Please retry.');console.error('Firebase signout failed',e)}
