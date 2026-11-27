@@ -53,7 +53,7 @@
   function saveQueue(items) {
     localStorage.setItem(
       QUEUE_KEY,
-      JSON.stringify(items.slice(-100))
+      JSON.stringify(items)
     );
   }
 
@@ -114,7 +114,8 @@
       }
 
       for (const item of readQueue().slice(0, 20)) {
-        if (wasSent(item.id) || (await ledgerRequest('GET',null,item.id)).length) { saveQueue(readQueue().filter(x=>x.id!==item.id)); continue; }
+        if (item.delivered || wasSent(item.id)) { await ledgerRequest('POST',{alert_id:item.id}); saveQueue(readQueue().filter(x=>x.id!==item.id)); continue; }
+        if ((await ledgerRequest('GET',null,item.id)).length) { saveQueue(readQueue().filter(x=>x.id!==item.id)); continue; }
         const response = await fetch(URL, {
           method: 'POST',
           headers: {
@@ -137,12 +138,13 @@
         }
 
         saveQueue(
-          readQueue().filter(x => x.id !== item.id)
+          readQueue().map(x => x.id === item.id ? {...x, delivered:true} : x)
         );
         try{const k='biki_telegram_sent_v1';const ledger=JSON.parse(localStorage.getItem(k)||'{}');ledger[item.id]=Date.now();localStorage.setItem(k,JSON.stringify(ledger));}catch(e){console.warn('Alert delivery ledger unavailable');}
 
         deliveredCloud.add(item.id);
         await ledgerRequest('POST',{alert_id:item.id});
+        saveQueue(readQueue().filter(x=>x.id!==item.id));
         lastError = '';
         lastSuccess = new Date()
           .toLocaleString('en-IN');
