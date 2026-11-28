@@ -2195,6 +2195,7 @@ function setup(){
  button.innerHTML='<span class="pdf-indicator" aria-hidden="true">◌</span><span>☁ Ticket PDF Cloud Storage<span class="pdf-state">Checking connection…</span></span>';
  row.append(button,panel);meter.append(row);
  const state=button.querySelector('.pdf-state'),symbol=button.querySelector('.pdf-indicator');
+ let wasConnected=false;
  function sync(){
   const s=(status?.textContent||'').trim(),connected=/^Connected:/i.test(s),disconnected=/^Not connected/i.test(s);
   button.classList.toggle('pdf-connected',connected);
@@ -2203,6 +2204,8 @@ function setup(){
   symbol.textContent=connected?'✓':disconnected?'✕':!s?'◌':'!';
   state.textContent=connected?'Connected · Auto Restore ON':disconnected?'Not Connected · Tap to sign in':!s?'Checking connection…':'Connection needs attention · Tap to check';
   button.setAttribute('aria-label','Ticket PDF Cloud Storage: '+state.textContent);
+  if(connected&&!wasConnected)toggle(false);
+  wasConnected=connected;
  }
  function toggle(open){
   panel.hidden=!open;
@@ -2213,6 +2216,7 @@ function setup(){
   }
  }
  button.addEventListener('click',()=>toggle(panel.hidden));
+ for(const id of ['pdfCloudLogin','pdfCloudSignup']){const control=document.getElementById(id);if(control)control.addEventListener('click',()=>{wasConnected=false;},{capture:true});}
  sync();
  if(status)new MutationObserver(sync).observe(status,{childList:true,subtree:true,characterData:true});
  // Update UI even when the existing PDF client restores its saved session.
