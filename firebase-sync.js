@@ -20,7 +20,7 @@ function clearIdle(){originalRemove.call(localStorage,IDLE_KEY)}
 function clearAuthUi(message){
  sessionStorage.removeItem('biki_logged_in');sessionStorage.removeItem('biki_active_role');sessionStorage.removeItem('biki_last_activity');sessionStorage.removeItem('biki_screen_locked_v1');
  const pin=document.getElementById('bikiPinOverlay');if(pin)pin.hidden=true;
- gate.style.display='grid';tools.style.display='none';msg(message||'');state('Login required');
+ setRestoring(false);gate.style.display='grid';tools.style.display='none';msg(message||'');state('Login required');
 }
 function checkIdle(){
  if(closing||loginAttempt||!auth||!auth.currentUser)return false;
@@ -35,7 +35,12 @@ function realActivity(e){
  const now=Date.now(),r=idleRecord();if(!r||now-r.at>=1000)touchIdle(auth.currentUser,now);
 }
 const css=document.createElement('style');css.textContent=`#bikiCloudGate{position:fixed;inset:0;z-index:2147483647;background:linear-gradient(110deg,rgba(3,20,55,.48),rgba(4,34,76,.16)),url("login-travel-background.jpg") center center / cover no-repeat;display:grid;place-items:center;padding:18px;font-family:Arial,sans-serif}#bikiCloudGate *{box-sizing:border-box}#bikiCloudCard{width:min(470px,100%);background:white;border-radius:20px;padding:26px;box-shadow:0 18px 70px #001e5477;color:#17345b}#bikiCloudCard h2{margin:0 0 8px;font-size:22px}#bikiCloudCard p{line-height:1.5}#bikiCloudCard input{width:100%;padding:12px;border:1px solid #bbd0e5;border-radius:9px;margin:6px 0 13px;font-size:15px}#bikiCloudCard button,.bikiCloudBtn{padding:11px 13px;border:0;border-radius:9px;background:#0759d8;color:#fff;font-weight:700;cursor:pointer}#bikiCloudCard button:disabled{opacity:.55;cursor:wait}#bikiCloudCard .secondary{background:#eaf1ff;color:#164786}#bikiCloudCard small{color:#556b82}#bikiCloudMsg{white-space:pre-wrap;font-size:13px;margin-top:10px;color:#9d2a22}#bikiCloudStatus{position:fixed;right:14px;bottom:12px;z-index:999999;background:#102b58;color:white;padding:9px 14px;border-radius:10px;font:12px Arial;box-shadow:0 5px 18px #0003;max-width:280px}#bikiCloudTools{position:fixed;bottom:60px;right:14px;z-index:999999;display:flex;gap:6px;flex-wrap:wrap;max-width:360px;justify-content:flex-end}#bikiCloudTools button{padding:8px 10px;border:0;border-radius:8px;background:#e9f2ff;color:#103d7c;cursor:pointer;box-shadow:0 2px 10px #0002}#credentialsForm,#staffAddForm,#staffAccountsList,#pinSettingsForm,#removePinBtn,#bikiRecoverySetupForm{display:none!important}`;document.head.append(css);
-const gate=document.createElement('div');gate.id='bikiCloudGate';gate.innerHTML=`<div id="bikiCloudCard"><h2>☁ BIKI ONLINE SERVICE CENTER</h2><p id="bikiCloudIntro">Firebase Cloud Login · আপনার সব PC-তে একই ডেটা</p><form id="bikiCloudForm"><label>Email (Firebase Authentication)</label><input id="bikiCloudEmail" type="email" autocomplete="username" required placeholder="owner@example.com"><label>Password</label><input id="bikiCloudPassword" type="password" autocomplete="current-password" required placeholder="Firebase password"><button id="bikiCloudLogin" type="submit" style="width:100%">Secure Login</button></form><div id="bikiCloudMsg" role="alert"></div><p><small>পুরোনো admin / 1234 আর কাজ করবে না। Firebase Console-এ Email/Password User তৈরি করুন।</small></p></div>`;document.body.append(gate);
+const gate=document.createElement('div');gate.id='bikiCloudGate';gate.innerHTML=`<div id="bikiCloudCard"><h2>☁ BIKI ONLINE SERVICE CENTER</h2><p id="bikiCloudIntro">Firebase Cloud Login · আপনার সব PC-তে একই ডেটা</p><form id="bikiCloudForm"><label>Email (Firebase Authentication)</label><input id="bikiCloudEmail" type="email" autocomplete="username" required placeholder="owner@example.com"><label>Password</label><input id="bikiCloudPassword" type="password" autocomplete="current-password" required placeholder="Firebase password"><button id="bikiCloudLogin" type="submit" style="width:100%">Secure Login</button></form><div id="bikiCloudMsg" role="alert"></div><p><small>পুরোনো admin / 1234 আর কাজ করবে না। Firebase Console-এ Email/Password User তৈরি করুন।</small></p></div>`;document.body.append(gate); 
+const restoreStyle=document.createElement('style');restoreStyle.textContent='#bikiCloudGate.biki-restoring{background:#f1f5fa!important}#bikiCloudGate.biki-restoring #bikiCloudCard{background:transparent!important;box-shadow:none!important;border:0!important;color:#17345b!important;text-align:center}#bikiCloudGate.biki-restoring #bikiCloudCard>*:not(#bikiRestoreNotice){display:none!important}#bikiRestoreNotice{font:600 15px Arial;color:#174ba0;padding:24px}#bikiRestoreNotice[hidden]{display:none!important}';document.head.append(restoreStyle);
+const notice=document.createElement('div');notice.id='bikiRestoreNotice';notice.setAttribute('role','status');notice.textContent='Restoring dashboard…';notice.hidden=true;document.getElementById('bikiCloudCard').append(notice);
+function setRestoring(on){gate.classList.toggle('biki-restoring',on);notice.hidden=!on;}
+setRestoring(sessionStorage.getItem('biki_view_v1')==='billing'&&sessionStorage.getItem('biki_logged_in')==='yes');
+
 const status=document.createElement('div');status.id='bikiCloudStatus';status.textContent='☁ Cloud: connecting…';document.body.append(status);
 const tools=document.createElement('div');tools.id='bikiCloudTools';tools.style.display='none';tools.innerHTML='<button id="bikiCloudExport">⬇ Local Backup</button><button id="bikiCloudImport">⬆ Import Old PC Data</button><button id="bikiCloudRefresh">↻ Refresh Cloud Data</button><button id="bikiCloudTest">☁ Test Cloud Write</button><button id="bikiCloudSignout">Sign out</button><input type="file" id="bikiCloudFile" accept="application/json,.json" style="display:none">';document.body.append(tools);
 const msg=s=>document.getElementById('bikiCloudMsg').textContent=s;
@@ -79,9 +84,9 @@ for(const k of syncKeys){if(docs.has(k)){setLocal(k,docs.get(k));lastCloud.set(k
 // Discard the legacy local username/password and legacy staff credentials; Firebase is authoritative.
 originalRemove.call(localStorage,'biki_login_credentials');originalRemove.call(localStorage,'biki_staff_accounts_v1');originalRemove.call(localStorage,'biki_screen_lock_pin');originalRemove.call(localStorage,'biki_recovery_verifier_v1');
 repaint();sessionStorage.setItem('biki_active_role','admin');sessionStorage.setItem('biki_logged_in','yes');if(typeof bikiUnlock==='function')bikiUnlock();sessionStorage.setItem('biki_last_activity',String(idleRecord().at));
-ready=true;gate.style.display='none';document.getElementById('loginOverlay').style.display='none';tools.style.display='flex';state('Live Sync connected ✓');
+ready=true;gate.style.display='none';setRestoring(false);document.getElementById('loginOverlay').style.display='none';tools.style.display='flex';state('Live Sync connected ✓');
 unsub=db.collection('owners').doc(uid).collection('settings').onSnapshot({includeMetadataChanges:true},snapshot=>{if(!ready||busy||closing||myGeneration!==generation)return;if(snapshot.metadata.fromCache){state('Offline / cached — changes not verified online');return;}let changed=false;for(const ch of snapshot.docChanges()){const k=ch.doc.id;if(!keySet.has(k))continue;const value=ch.type==='removed'?null:ch.doc.data().value;if(pending.has(k))continue;if(value===lastCloud.get(k))continue;lastCloud.set(k,value);setLocal(k,value);changed=true}if(changed){repaint();state('Updated from cloud ✓')}},e=>{state('Listener error: '+e.message);console.error(e)});
-}catch(e){if(myGeneration!==generation||closing)return;ready=false;msg('Cloud load failed: '+e.message+'\nCheck Firestore rules, connection, and project configuration.');state('Connection failed');}finally{if(myGeneration===generation)loadingUid=null}}
+}catch(e){if(myGeneration!==generation||closing)return;ready=false;setRestoring(false);msg('Cloud load failed: '+e.message+'\nCheck Firestore rules, connection, and project configuration.');state('Connection failed');}finally{if(myGeneration===generation)loadingUid=null}}
 async function signout(reason){
  if(signoutTask)return signoutTask;
  const message=typeof reason==='string'?reason:'';
@@ -150,11 +155,11 @@ const loginForm=document.getElementById('bikiCloudForm');loginForm.onsubmit=asyn
  }catch(err){clearAuthUi('Login failed: '+err.message)}
  finally{loginAttempt=false;b.disabled=false}
 };
-if(!configured){msg('Firebase configuration missing. Open firebase-config.js and paste your project config. See README_BN.md.');state('Setup required');return}
-if(typeof firebase==='undefined'){msg('Firebase SDK could not load. Check internet connection or content blocker.');state('SDK unavailable');return}
+if(!configured){setRestoring(false);msg('Firebase configuration missing. Open firebase-config.js and paste your project config. See README_BN.md.');state('Setup required');return}
+if(typeof firebase==='undefined'){setRestoring(false);msg('Firebase SDK could not load. Check internet connection or content blocker.');state('SDK unavailable');return}
 try{firebase.initializeApp(config);auth=firebase.auth();db=firebase.firestore();auth.onAuthStateChanged(user=>{
  if(closing||loginAttempt)return;
  if(user){if(!idleValid(user)){void signout('Session expired. Please sign in again.');return}if(uid!==user.uid||!ready)void startCloud(user)}
  else{generation++;loadingUid=null;uid=null;ready=false;if(unsub){unsub();unsub=null}clearIdle();clearAuthUi('')}
-})}catch(e){msg('Firebase initialization failed: '+e.message);state('Setup error')}
+})}catch(e){setRestoring(false);msg('Firebase initialization failed: '+e.message);state('Setup error')}
 })();
